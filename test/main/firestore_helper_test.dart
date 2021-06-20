@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_helper/main/firestore_helper.dart';
-import 'package:firebase_helper/mocked_classes.mocks.dart';
+import 'package:firestore_helper/main/firestore_helper.dart';
+import 'package:firestore_helper/mocked_classes.mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 

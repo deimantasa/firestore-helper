@@ -1,6 +1,6 @@
-name: firebase_helper
+name: firestore_helper
 description: Helper package for handling Firestore easier. It removes boilerplate code by abstracting most frequently used Firebase APIs.
-version: 0.0.1
+version: 0.0.2
 homepage: 'https://deimantas.dev'
 
 environment:

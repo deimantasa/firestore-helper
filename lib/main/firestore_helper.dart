@@ -3,8 +3,8 @@ library firebase_helper_package;
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_helper/models/log_type.dart';
-import 'package:firebase_helper/main/logging_service.dart';
+import 'package:firestore_helper/models/log_type.dart';
+import 'package:firestore_helper/main/logging_service.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
