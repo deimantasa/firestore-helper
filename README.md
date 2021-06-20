@@ -1,4 +1,4 @@
-# firebase_helper
+# firestore_helper
 
 Helper package which abstracts Firebase APIs and expose mostly reusable methods.
 

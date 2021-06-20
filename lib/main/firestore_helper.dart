@@ -12,31 +12,79 @@ class FirestoreHelper {
   final FirebaseFirestore _firebaseFirestore;
   final LoggingService _loggingService;
 
-  FirestoreHelper({FirebaseFirestore? firebaseFirestore, LoggingService? loggingService})
-      : this._firebaseFirestore = firebaseFirestore ?? FirebaseFirestore.instance,
-        this._loggingService = loggingService ?? LoggingService(logger: Logger(printer: PrettyPrinter(methodCount: 2)));
+  /// Flag to determine, if extra fields should be included. Read more
+  /// in [_includeAdditionalFieldsIntoMap].
+  final bool _includeAdditionalFields;
 
+  FirestoreHelper({
+    required bool includeAdditionalFields,
+    required bool isLoggingEnabled,
+    FirebaseFirestore? firebaseFirestore,
+    LoggingService? loggingService,
+  })  : this._includeAdditionalFields = includeAdditionalFields,
+        this._firebaseFirestore = firebaseFirestore ?? FirebaseFirestore.instance,
+        this._loggingService = loggingService ??
+            LoggingService(
+              isLoggingEnabled,
+              logger: Logger(printer: PrettyPrinter(methodCount: 2)),
+            );
+
+  /// Updates existing data map with `createdAt` and `updatedAt`.
+  ///
+  /// [dataMap] is original data map which shall be updated.
+  /// [includeCreatedAt] is the toggle for whether we should add `createdAt` field.
+  /// Generally we don't want to update this field when we update data set. Thus
+  /// this field shall be included only when we create a new document.
+  void _includeAdditionalFieldsIntoMap(Map<String, dynamic> dataMap, {bool includeCreatedAt = false}) {
+    // Don't use `FieldValue.serverTimestamp()` because it takes time to initialise
+    // time thus for some millis createdAt and updatedAt can be null.
+    final Timestamp timeStamp = Timestamp.fromDate(DateTime.now());
+
+    if (includeCreatedAt) dataMap.addAll({'createdAt': timeStamp});
+    dataMap.addAll({'updatedAt': timeStamp});
+  }
+
+  /// Adds a new document into the collection in Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [update] is the data which will be added to the document.
+  /// [documentId] is the optional ID. If it is specified - document will be created.
+  /// with exactly that ID. Otherwise, random ID will be generated.
   Future<String?> addDocument(
     String collection,
     Map<String, dynamic> update, {
     String? documentId,
   }) async {
     try {
-      final DocumentReference documentReference = _firebaseFirestore.collection(collection).doc(documentId);
-      await documentReference.set(update);
+      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
+      final DocumentReference documentReference;
 
-      _loggingService.log(
-          'FirestoreGenericService.setDocument: Set. Collection $collection, DocID: ${documentReference.id}, Update: $update');
+      if (documentId != null) {
+        documentReference = _firebaseFirestore.collection(collection).doc(documentId);
+        await documentReference.set(update);
+      } else {
+        documentReference = await _firebaseFirestore.collection(collection).add(update);
+      }
+
+      _loggingService.log('FirestoreHelper.addDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
       return documentReference.id;
     } catch (e) {
       _loggingService.log(
-        'FirestoreGenericService.setDocument: Set failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.addDocument: Failed. Update: $update, Exception: ${e.toString()}',
         logType: LogType.error,
       );
       return null;
     }
   }
 
+  /// Adds a new document into the sub-collection in Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [subCollection] is the name of the sub collection within that document.
+  /// [update] is the data which will be added to the document.
+  /// [subCollectionDocumentId] is the optional ID. If it is specified - document will be created.
+  /// with exactly that ID. Otherwise, random ID will be generated.
   Future<String?> addSubCollectionDocument({
     required String collection,
     required String documentId,
@@ -45,37 +93,57 @@ class FirestoreHelper {
     String? subCollectionDocumentId,
   }) async {
     try {
-      final DocumentReference documentReference =
-          _firebaseFirestore.collection(collection).doc(documentId).collection(subCollection).doc(subCollectionDocumentId);
+      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
+      final DocumentReference documentReference;
 
-      await documentReference.set(update);
+      if (subCollectionDocumentId != null) {
+        documentReference =
+            _firebaseFirestore.collection(collection).doc(documentId).collection(subCollection).doc(subCollectionDocumentId);
+        await documentReference.set(update);
+      } else {
+        documentReference = await _firebaseFirestore.collection(collection).doc(documentId).collection(subCollection).add(update);
+      }
+
       _loggingService.log(
-          'FirestoreGenericService.setDocument: Set. Collection $collection, DocID: ${documentReference.id}, Update: $update');
+          'FirestoreHelper.addSubCollectionDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
       return documentReference.id;
     } catch (e) {
       _loggingService.log(
-        'FirestoreGenericService.setDocument: Set failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.addSubCollectionDocument: Failed. Update: $update, Exception: ${e.toString()}',
         logType: LogType.error,
       );
       return null;
     }
   }
 
+  /// Updates existing document in Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection
+  /// [update] is the data which will be updated within that document.
   Future<bool> updateDocument(String collection, String documentId, Map<String, dynamic> update) async {
     try {
+      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update);
       await _firebaseFirestore.collection(collection).doc(documentId).update(update);
-      _loggingService.log('FirestoreGenericService.setDocument: Update. Collection $collection,'
+      _loggingService.log('FirestoreHelper.updateDocument: Collection $collection,'
           ' DocID: $documentId, Update: $update');
       return true;
     } catch (e) {
       _loggingService.log(
-        'FirestoreGenericService.setDocument: Update failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.updateDocument: Failed. Update: $update, Exception: ${e.toString()}',
         logType: LogType.error,
       );
       return false;
     }
   }
 
+  /// Updates existing sub-collection document in Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [subCollection] is the name of the document within that collection.
+  /// [subCollectionDocumentId] is the ID of the document within that collection.
+  /// [update] is the data which will be updated within that document.
   Future<bool> updateSubCollectionsDocument({
     required String collection,
     required String documentId,
@@ -84,18 +152,19 @@ class FirestoreHelper {
     required Map<String, dynamic> update,
   }) async {
     try {
+      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update);
       await _firebaseFirestore
           .collection(collection)
           .doc(documentId)
           .collection(subCollection)
           .doc(subCollectionDocumentId)
           .update(update);
-      _loggingService.log('FirestoreGenericService.setDocument: Update. Collection $collection, CollectionDocID: $documentId,'
+      _loggingService.log('FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
           ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId, Update: $update');
       return true;
     } catch (e) {
       _loggingService.log(
-        'FirestoreGenericService.setDocument: Update. Collection $collection, CollectionDocID: $documentId,'
+        'FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
         ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId,'
         ' Update: $update, Exception: ${e.toString()}',
         logType: LogType.error,
@@ -104,21 +173,53 @@ class FirestoreHelper {
     }
   }
 
+  /// Deletes existing document from Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
   Future<bool> deleteDocument(String collection, String documentId) async {
     try {
-      _loggingService.log('FirestoreGenericService.deleteDocument: Deleting. Collection $collection, DocId: $documentId');
+      _loggingService.log('FirestoreHelper.deleteDocument: Deleting. Collection $collection, DocId: $documentId');
       await _firebaseFirestore.collection(collection).doc(documentId).delete();
-      _loggingService.log('FirestoreGenericService.deleteDocument: Deleted. Collection $collection, DocId: $documentId');
+      _loggingService.log('FirestoreHelper.deleteDocument: Deleted. Collection $collection, DocId: $documentId');
       return true;
     } catch (e) {
-      _loggingService.log(
-        'FirestoreGenericService.deleteDocument: Exception: $e',
-        logType: LogType.error,
-      );
+      _loggingService.log('FirestoreHelper.deleteDocument: Exception: $e', logType: LogType.error);
       return false;
     }
   }
 
+  /// Deletes existing documents from Firebase.
+  ///
+  /// [query] is query. If document will match that particular [query]
+  /// it will be deleted.
+  Future<bool> deleteDocumentsByQuery(Query query) async {
+    try {
+      _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Deleting. Query: ${query.parameters}');
+      final QuerySnapshot querySnapshot = await query.get();
+      final List<Future> futures = [];
+
+      querySnapshot.docs.forEach((element) {
+        _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Deleting. DocId: ${element.id}');
+        futures.add(element.reference.delete());
+      });
+
+      await Future.wait(futures);
+
+      return true;
+    } catch (e) {
+      print(e);
+      _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Exception: $e', logType: LogType.error);
+      return false;
+    }
+  }
+
+  /// Deletes existing document from sub-collection in Firebase.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [subCollection] is the name of the document within that collection.
+  /// [subCollectionDocumentId] is the ID of the document within that collection.
   Future<bool> deleteSubCollectionDocument({
     required String collection,
     required String documentId,
@@ -126,7 +227,7 @@ class FirestoreHelper {
     required String subCollectionDocumentId,
   }) async {
     try {
-      _loggingService.log('FirestoreGenericService.deleteDocument: Deleting. Collection $collection, DocId: $documentId'
+      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Deleting. Collection $collection, DocId: $documentId'
           ' SubCollection $subCollection, SubCollectionDocId: $subCollectionDocumentId');
       await _firebaseFirestore
           .collection(collection)
@@ -134,27 +235,24 @@ class FirestoreHelper {
           .collection(subCollection)
           .doc(subCollectionDocumentId)
           .delete();
-      _loggingService.log('FirestoreGenericService.deleteDocument: Deleted. Collection $collection, DocId: $documentId');
+      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Deleted. Collection $collection, DocId: $documentId');
       return true;
     } catch (e) {
-      _loggingService.log(
-        'FirestoreGenericService.deleteDocument: Exception: $e',
-        logType: LogType.error,
-      );
+      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Exception: $e', logType: LogType.error);
       return false;
     }
   }
 
-  ///Generic method used for retrieving items. It simplifies pagination flow, so services doesn't need
-  ///to contain boilerplate code.
+  /// Retrieves list of items from Firestore. It simplifies pagination flow, so services doesn't need
+  /// to contain boilerplate code.
   ///
-  ///[userId] is document id of the [User].
-  ///[query] is the query used for the firestore.
-  ///[logReference] is reference string for logging purposes so we know when this query gets executed
-  ///and what executes it.
-  ///[onDocumentSnapshot] is a method with return type of an object.
-  ///[lastDocumentSnapshot] must not be null if pagination is required as it is an indicator of where to
-  ///continue query.
+  /// [userId] is document id of the [User].
+  /// [query] is the query used for the firestore.
+  /// [logReference] is reference string for logging purposes so we know when this query gets executed
+  /// and what executes it.
+  /// [onDocumentSnapshot] is a method with return type of an object.
+  /// [lastDocumentSnapshot] must not be null if pagination is required as it is an indicator of where to
+  /// continue query.
   Future<List<T>?> getElements<T>({
     required Query query,
     required String logReference,
@@ -164,7 +262,7 @@ class FirestoreHelper {
     final bool isMoreQuery = lastDocumentSnapshot != null;
     final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
-    _loggingService.log('FirestoreGenericService.getElements.$logReference: More: $isMoreQuery');
+    _loggingService.log('FirestoreHelper.getElements.$logReference: More: $isMoreQuery');
     try {
       final QuerySnapshot querySnapshot = await currentQuery.get();
       final List<T> elements = querySnapshot.docs.map((e) {
@@ -173,7 +271,7 @@ class FirestoreHelper {
         return element;
       }).toList();
 
-      _loggingService.log('FirestoreGenericService.getElements.$logReference: Total: ${elements.length}');
+      _loggingService.log('FirestoreHelper.getElements.$logReference: Total: ${elements.length}');
       return elements;
     } catch (e) {
       _loggingService.log(
@@ -184,6 +282,13 @@ class FirestoreHelper {
     }
   }
 
+  /// Retrieves an item from Firestore.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [logReference] is reference string for logging purposes so we know when this query gets executed
+  /// and what executes it.
+  /// [onDocumentSnapshot] is a method with return type of an object.
   Future<T?> getElement<T>(
     String collection,
     String documentId,
@@ -191,39 +296,45 @@ class FirestoreHelper {
     required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
     try {
-      _loggingService.log('FirestoreGenericService.getElement.$logReference: Collection: $collection, DocId: $documentId');
+      _loggingService.log('FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId');
       final DocumentSnapshot documentSnapshot = await _firebaseFirestore.collection(collection).doc(documentId).get();
       final T element = onDocumentSnapshot(documentSnapshot)!;
 
       return element;
     } catch (e) {
       _loggingService.log(
-        'FirestoreGenericService.getElement.$logReference: Collection: $collection, DocId: $documentId, Exception: $e',
+        'FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId, Exception: $e',
         logType: LogType.error,
       );
       return null;
     }
   }
 
+  /// Retrieves [true] if there are more items and [false] if there are no more items for the
+  /// specific [query].
+  ///
+  /// [query] is a query (creativity is not my best strength).
+  /// [lastDocumentSnapshot] is the last [DocumentSnapshot] contained within the list of items.
+  /// [onDocumentSnapshot] is a method with return type of an object.
   Future<bool> areMoreElementsAvailable<T>({
     required Query query,
     required DocumentSnapshot lastDocumentSnapshot,
     required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
-    _loggingService.log('FirestoreGenericService.areMoreElementsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
+    _loggingService.log('FirestoreHelper.areMoreElementsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
 
     final List<T>? elements = await getElements<T>(
       query: query..limit(1),
-      logReference: 'FirestoreGenericService.areMoreElementsAvailable',
+      logReference: 'FirestoreHelper.areMoreElementsAvailable',
       onDocumentSnapshot: (documentSnapshot) => onDocumentSnapshot(documentSnapshot),
       lastDocumentSnapshot: lastDocumentSnapshot,
     );
 
     if (elements == null || elements.isEmpty) {
-      _loggingService.log('FirestoreGenericService.areMoreElementsAvailable: No more elements');
+      _loggingService.log('FirestoreHelper.areMoreElementsAvailable: No more elements');
       return false;
     } else {
-      _loggingService.log('FirestoreGenericService.areMoreElementsAvailable: More elements exists.');
+      _loggingService.log('FirestoreHelper.areMoreElementsAvailable: More elements exists.');
       return true;
     }
   }
@@ -244,12 +355,12 @@ class FirestoreHelper {
     final bool isMoreQuery = lastDocumentSnapshot != null;
     final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
-    _loggingService.log(
-        'FirestoreGenericService.listenToElementsStream.$logReference: Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
+    _loggingService
+        .log('FirestoreHelper.listenToElementsStream.$logReference: Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
 
     final StreamSubscription<QuerySnapshot> streamSubscription = currentQuery.snapshots().listen((event) {
       event.docChanges.forEach((docChange) {
-        _loggingService.log('FirestoreGenericService.listenToElementsStream.$logReference:'
+        _loggingService.log('FirestoreHelper.listenToElementsStream.$logReference:'
             ' Type: ${docChange.type}. DocId: ${docChange.doc.id}');
         onDocumentChange(docChange);
       });
@@ -258,21 +369,36 @@ class FirestoreHelper {
     return streamSubscription;
   }
 
+  /// Listening for the stream of [QuerySnapshot] from Firestore. Used for a purpose
+  /// to return count of items.
+  ///
+  /// [logReference] is some string for logging purpose.
+  /// [query] is query used for this particular call.
+  /// [onCountChange] is a [ValueSetter] which will return count of objects within that specific
+  /// enquiry.
   StreamSubscription<QuerySnapshot> listenToElementsCountStream({
     required String logReference,
     required Query query,
     required ValueSetter<int> onCountChange,
   }) {
-    _loggingService.log('FirestoreGenericService.listenToElementsCountStream.$logReference');
+    _loggingService.log('FirestoreHelper.listenToElementsCountStream.$logReference');
 
     final StreamSubscription<QuerySnapshot> streamSubscription = query.snapshots().listen((querySnapshot) {
-      _loggingService.log('FirestoreGenericService.listenToElementsCountStream: Count:${querySnapshot.size}');
+      _loggingService.log('FirestoreHelper.listenToElementsCountStream: Count:${querySnapshot.size}');
       onCountChange(querySnapshot.size);
     });
 
     return streamSubscription;
   }
 
+  /// Listening for the stream of [DocumentSnapshot] from Firestore.
+  /// In case of any changes - [onDocumentChange] will get fired.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [logReference] is some string for logging purpose.
+  /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
+  /// that particular stream.
   StreamSubscription<DocumentSnapshot> listenToDocument<T>(
     String collection,
     String documentId,
@@ -281,7 +407,7 @@ class FirestoreHelper {
   }) {
     final StreamSubscription<DocumentSnapshot> streamSubscription =
         _firebaseFirestore.collection(collection).doc(documentId).snapshots().listen((documentSnapshot) {
-      _loggingService.log('FirestoreGenericService.listenToDocument.$logReference: New event.'
+      _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event.'
           ' Collection: $collection, DocId: $documentId');
       onDocumentChange(documentSnapshot);
     });
@@ -289,6 +415,16 @@ class FirestoreHelper {
     return streamSubscription;
   }
 
+  /// Listening for the stream of [DocumentSnapshot] from Firestore.
+  /// In case of any changes - [onDocumentChange] will get fired.
+  ///
+  /// [collection] is the name of the collection.
+  /// [documentId] is the ID of the document within that collection.
+  /// [subCollection] is the name of the collection.
+  /// [subCollectionDocumentId] is the ID of the document within that collection.
+  /// [logReference] is some string for logging purpose.
+  /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
+  /// that particular stream.
   StreamSubscription<DocumentSnapshot> listenToSubCollectionDocument<T>({
     required String collection,
     required String documentId,
@@ -304,9 +440,8 @@ class FirestoreHelper {
         .doc(subCollectionDocumentId)
         .snapshots()
         .listen((event) {
-      _loggingService
-          .log('FirestoreGenericService.listenToSubCollectionDocument.$logReference: New event. Collection: $collection, '
-              'DocId: $documentId, SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId');
+      _loggingService.log('FirestoreHelper.listenToSubCollectionDocument.$logReference: New event. Collection: $collection, '
+          'DocId: $documentId, SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId');
       onDocumentChange(event);
     });
 

@@ -8,9 +8,17 @@ import 'package:mockito/mockito.dart';
 
 // ignore: subtype_of_sealed_class
 class MockQueryDocumentSnapshot extends Mock implements QueryDocumentSnapshot {
+  final MockDocumentSnapshot _mockDocumentSnapshot;
+
+  MockQueryDocumentSnapshot(this._mockDocumentSnapshot);
   @override
   String get id {
     return 'itemId';
+  }
+
+  @override
+  DocumentReference get reference {
+    return _mockDocumentSnapshot.reference;
   }
 }
 
@@ -23,15 +31,21 @@ void main() {
   final MockDocumentReference<Map<String, dynamic>> mockSubCollectionDocumentReference = MockDocumentReference();
   final MockQuery mockQuery = MockQuery();
   final MockQuerySnapshot mockQuerySnapshot = MockQuerySnapshot();
-  final MockQueryDocumentSnapshot mockQueryDocumentSnapshot = MockQueryDocumentSnapshot();
   final MockDocumentSnapshot<Map<String, dynamic>> mockDocumentSnapshot = MockDocumentSnapshot();
+  final MockQueryDocumentSnapshot mockQueryDocumentSnapshot = MockQueryDocumentSnapshot(mockDocumentSnapshot);
   final MockStreamSubscription mockStreamSubscription = MockStreamSubscription();
   final MockDocumentChange mockDocumentChange = MockDocumentChange();
 
   late FirestoreHelper firestoreHelper;
 
   setUp(() {
-    firestoreHelper = FirestoreHelper(firebaseFirestore: mockFirebaseFirestore, loggingService: mockLoggingService);
+    firestoreHelper = FirestoreHelper(
+      //TODO test with true
+      includeAdditionalFields: false,
+      isLoggingEnabled: false,
+      firebaseFirestore: mockFirebaseFirestore,
+      loggingService: mockLoggingService,
+    );
   });
 
   tearDown(() {
@@ -53,16 +67,19 @@ void main() {
       test('documentId is null', () async {
         final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
         final void Function() onDocument = () => mockCollectionReference.doc(null);
+        final Function() onDocumentAdd = () => mockCollectionReference.add({'key': 'value'});
 
         when(onCollection()).thenReturn(mockCollectionReference);
         when(onDocument()).thenReturn(mockDocumentReference);
+        when(onDocumentAdd()).thenAnswer((_) async => mockDocumentReference);
         when(mockDocumentReference.id).thenReturn('docId');
 
         final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'});
 
         verify(onCollection()).called(1);
-        verify(onDocument()).called(1);
-        verify(mockDocumentReference.set({'key': 'value'})).called(1);
+        verifyNever(onDocument());
+        verifyNever(mockDocumentReference.set(any));
+        verify(onDocumentAdd()).called(1);
         expect(documentId, 'docId');
       });
       test('documentId is not null', () async {
@@ -103,11 +120,12 @@ void main() {
         final void Function() onDocument = () => mockCollectionReference.doc('documentId');
         final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
         final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc(null);
+        final Function() onSubCollectionDocumentAdd = () => mockSubCollectionReference.add({'key': 'value'});
 
         when(onCollection()).thenReturn(mockCollectionReference);
         when(onDocument()).thenReturn(mockDocumentReference);
         when(onSubCollection()).thenReturn(mockSubCollectionReference);
-        when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
+        when(onSubCollectionDocumentAdd()).thenAnswer((_) async => mockSubCollectionDocumentReference);
         when(mockSubCollectionDocumentReference.id).thenReturn('docId');
 
         final String? documentId = await firestoreHelper.addSubCollectionDocument(
@@ -120,8 +138,9 @@ void main() {
         verify(onCollection()).called(1);
         verify(onDocument()).called(1);
         verify(onSubCollection()).called(1);
-        verify(onSubCollectionDocument()).called(1);
-        verify(mockSubCollectionDocumentReference.set({'key': 'value'})).called(1);
+        verifyNever(onSubCollectionDocument());
+        verifyNever(mockSubCollectionDocumentReference.set(any));
+        verify(mockSubCollectionReference.add({'key': 'value'})).called(1);
         expect(documentId, 'docId');
       });
       test('subCollectionDocumentId is not null', () async {
@@ -285,6 +304,21 @@ void main() {
       verifyNever(mockDocumentReference.delete());
       expect(isSuccess, isFalse);
     });
+  });
+
+  group('deleteDocuments', () {
+    test('success', () async {
+      when(mockQuery.parameters).thenReturn({});
+      when(mockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
+      when(mockQueryDocumentSnapshot.reference).thenReturn(mockDocumentReference);
+
+      final bool isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
+
+      verify(mockDocumentReference.delete()).called(2);
+      expect(isSuccess, isTrue);
+    });
+    test('failed', () {});
   });
 
   group('deleteSubCollectionsDocument', () {
@@ -514,11 +548,11 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await firestoreHelper.listenToElementsStream(
+      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
-      );
+      ));
 
       verify(mockFunction(mockDocumentChange)).called(1);
       expect(streamSubscription, isNotNull);
@@ -540,12 +574,12 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await firestoreHelper.listenToElementsStream(
+      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
         lastDocumentSnapshot: mockDocumentSnapshot,
-      );
+      ));
 
       verify(mockFunction(mockDocumentChange)).called(1);
       expect(streamSubscription, isNotNull);
@@ -564,11 +598,11 @@ void main() {
     when(mockQuery.snapshots()).thenAnswer((_) => streamController.stream);
     when(mockQuerySnapshot.size).thenReturn(-1);
 
-    final StreamSubscription streamSubscription = await firestoreHelper.listenToElementsCountStream(
+    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsCountStream(
       logReference: '',
       query: mockQuery,
       onCountChange: onCountChange,
-    );
+    ));
 
     verify(mockFunction(-1)).called(1);
     expect(streamSubscription, isNotNull);
@@ -590,12 +624,12 @@ void main() {
     when(onDocument()).thenReturn(mockDocumentReference);
     when(mockDocumentReference.snapshots()).thenAnswer((_) => streamController.stream);
 
-    final StreamSubscription streamSubscription = await firestoreHelper.listenToDocument(
+    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocument(
       'collection',
       'documentId',
       '',
       onDocumentChange: onDocumentChange,
-    );
+    ));
 
     verify(mockFunction(mockDocumentSnapshot)).called(1);
     expect(streamSubscription, isNotNull);
@@ -622,14 +656,14 @@ void main() {
     when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
     when(mockSubCollectionDocumentReference.snapshots()).thenAnswer((_) => streamController.stream);
 
-    final StreamSubscription streamSubscription = await firestoreHelper.listenToSubCollectionDocument(
+    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToSubCollectionDocument(
       collection: 'collection',
       documentId: 'docId',
       subCollection: 'subCollection',
       subCollectionDocumentId: 'subCollectionDocId',
       logReference: '',
       onDocumentChange: onDocumentChange,
-    );
+    ));
 
     verify(mockFunction(mockDocumentSnapshot)).called(1);
     expect(streamSubscription, isNotNull);
