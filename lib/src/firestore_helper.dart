@@ -2,24 +2,14 @@ part of firestore_helper;
 
 class FirestoreHelper {
   final FirebaseFirestore _firebaseFirestore;
-
-  @visibleForTesting
-  FirebaseFirestore get firebaseFirestore => _firebaseFirestore;
-
   final LoggingService _loggingService;
-
-  @visibleForTesting
-  LoggingService get loggingService => _loggingService;
 
   /// Flag to determine, if extra fields should be included. Read more
   /// in [_includeAdditionalFieldsIntoMap].
   final bool _includeAdditionalFields;
 
-  /// Flag to determine, if extra fields should be included. Read more
-  /// in [_includeAdditionalFieldsIntoMap].
-  @visibleForTesting
-  bool get includeAdditionalFields => _includeAdditionalFields;
-
+  /// Exclude from coverage since we are using special `test` constructor.
+  // coverage:ignore-start
   FirestoreHelper({
     required bool includeAdditionalFields,
     required bool isLoggingEnabled,
@@ -29,6 +19,7 @@ class FirestoreHelper {
           isLoggingEnabled,
           logger: Logger(printer: PrettyPrinter(methodCount: 2)),
         );
+  // coverage:ignore-end
 
   @visibleForTesting
   FirestoreHelper.test({
@@ -217,7 +208,6 @@ class FirestoreHelper {
 
       return true;
     } catch (e) {
-      print(e);
       _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Exception: $e', logType: LogType.error);
       return false;
     }

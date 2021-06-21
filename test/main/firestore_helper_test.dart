@@ -639,7 +639,7 @@ void main() {
     });
   });
 
-  group('deleteDocuments', () {
+  group('deleteDocumentsByQuery', () {
     test('success', () async {
       when(mockQuery.parameters).thenReturn({});
       when(mockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
@@ -651,7 +651,16 @@ void main() {
       verify(mockDocumentReference.delete()).called(2);
       expect(isSuccess, isTrue);
     });
-    test('failed', () {});
+    test('failed', () async {
+      when(mockQuery.get()).thenThrow(Exception('error'));
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
+      when(mockQueryDocumentSnapshot.reference).thenReturn(mockDocumentReference);
+
+      final bool isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
+
+      verifyNever(mockDocumentReference.delete());
+      expect(isSuccess, isFalse);
+    });
   });
 
   group('deleteSubCollectionsDocument', () {

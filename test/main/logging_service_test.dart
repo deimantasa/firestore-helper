@@ -17,6 +17,12 @@ void main() {
     reset(mockLogger);
   });
 
+  test('LoggingService', () {
+    loggingService = LoggingService(false);
+
+    expect(loggingService.isEnabled, isFalse);
+  });
+
   group('log', () {
     test('${LogType.debug}', () {
       loggingService.log('message');
