@@ -1,6 +1,6 @@
-import 'package:firestore_helper/main/logging_service.dart';
-import 'package:firestore_helper/mocked_classes.mocks.dart';
-import 'package:firestore_helper/models/log_type.dart';
+import 'package:firestore_helper/src/logging_service.dart';
+import 'package:firestore_helper/src/log_type.dart';
+import 'package:firestore_helper/src/utils/mocked_classes.mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 

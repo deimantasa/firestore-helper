@@ -22,6 +22,7 @@ dependencies:
 
   # Testing
   mockito: ^5.0.10
+  clock: ^1.1.0
 
 dev_dependencies:
   flutter_test:

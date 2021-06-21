@@ -1,4 +1,4 @@
-import 'package:firestore_helper/models/log_type.dart';
+import 'package:firestore_helper/src/log_type.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 

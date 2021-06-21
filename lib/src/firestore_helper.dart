@@ -1,12 +1,4 @@
-library firebase_helper_package;
-
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firestore_helper/models/log_type.dart';
-import 'package:firestore_helper/main/logging_service.dart';
-import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
+part of firestore_helper;
 
 class FirestoreHelper {
   final FirebaseFirestore _firebaseFirestore;
@@ -19,15 +11,21 @@ class FirestoreHelper {
   FirestoreHelper({
     required bool includeAdditionalFields,
     required bool isLoggingEnabled,
-    FirebaseFirestore? firebaseFirestore,
-    LoggingService? loggingService,
   })  : this._includeAdditionalFields = includeAdditionalFields,
-        this._firebaseFirestore = firebaseFirestore ?? FirebaseFirestore.instance,
-        this._loggingService = loggingService ??
-            LoggingService(
-              isLoggingEnabled,
-              logger: Logger(printer: PrettyPrinter(methodCount: 2)),
-            );
+        this._firebaseFirestore = FirebaseFirestore.instance,
+        this._loggingService = LoggingService(
+          isLoggingEnabled,
+          logger: Logger(printer: PrettyPrinter(methodCount: 2)),
+        );
+
+  @visibleForTesting
+  FirestoreHelper.test({
+    required bool includeAdditionalFields,
+    required FirebaseFirestore firebaseFirestore,
+    required LoggingService loggingService,
+  })  : this._includeAdditionalFields = includeAdditionalFields,
+        this._firebaseFirestore = firebaseFirestore,
+        this._loggingService = loggingService;
 
   /// Updates existing data map with `createdAt` and `updatedAt`.
   ///
@@ -38,7 +36,7 @@ class FirestoreHelper {
   void _includeAdditionalFieldsIntoMap(Map<String, dynamic> dataMap, {bool includeCreatedAt = false}) {
     // Don't use `FieldValue.serverTimestamp()` because it takes time to initialise
     // time thus for some millis createdAt and updatedAt can be null.
-    final Timestamp timeStamp = Timestamp.fromDate(DateTime.now());
+    final Timestamp timeStamp = Timestamp.fromDate(clock.now());
 
     if (includeCreatedAt) dataMap.addAll({'createdAt': timeStamp});
     dataMap.addAll({'updatedAt': timeStamp});
@@ -65,7 +63,6 @@ class FirestoreHelper {
       } else {
         documentReference = await _firebaseFirestore.collection(collection).add(update);
       }
-
       _loggingService.log('FirestoreHelper.addDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
       return documentReference.id;
     } catch (e) {
