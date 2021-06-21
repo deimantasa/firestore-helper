@@ -18,7 +18,7 @@ In order to run `example` app on your device:
 3. Create a new project for Android/iOS device (package must be called `com.firestorehelper`) and put files (`google-services.json`/`GoogleService-Info.plist`) into right directories;
 4. Build the app. Now you are having a fully running DEMO app. 
 
-TODO
+https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4
 
 ## Feature-set
 
