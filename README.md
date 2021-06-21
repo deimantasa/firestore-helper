@@ -37,21 +37,21 @@ Just a few methods to quickly show this package capabilities. Watch [full demo](
 
 ## Feature-set
 
-| Feature                                       |   Available    |  Pending  |
+| Feature                                       | Available      | Pending   |
 | --------------------------------------------- | :------------: | :-------: | 
-| Add Document To Collection                    |       ✅       |           |  
-| Add Document To SubCollection                 |       ✅       |           |
-| Remove Document From Collection               |       ✅       |           |
-| Remove Document From SubCollection            |       ✅       |           |
-| Update Document in Collection                 |       ✅       |           |
-| Update Document in SubCollection              |       ✅       |           |
-| Remove Documents from Collection by Query     |       ✅       |           |
-| Listen for a Document in Collection           |       ✅       |           |
-| Listen for a Document in SubCollection        |       ✅       |           |
-| Listen for a Query                            |       ✅       |           |
-| Get list of Items                             |       ✅       |           |
-| Get an Item                                   |       ✅       |           |
-| Check if more items are available             |       ✅       |           |
+| Add Document To Collection                    | ✅             |           |  
+| Add Document To SubCollection                 | ✅             |           |  
+| Remove Document From Collection               | ✅             |           |  
+| Remove Document From SubCollection            | ✅             |           |  
+| Update Document in Collection                 | ✅             |           |  
+| Update Document in SubCollection              | ✅             |           |  
+| Remove Documents from Collection by Query     | ✅             |           |  
+| Listen for a Document in Collection           | ✅             |           |  
+| Listen for a Document in SubCollection        | ✅             |           |  
+| Listen for a Query                            | ✅             |           |  
+| Get list of Items                             | ✅             |           |  
+| Get an Item                                   | ✅             |           |  
+| Check if more items are available             | ✅             |           |  
 
 ## Extra Features  
 
