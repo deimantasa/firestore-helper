@@ -6,6 +6,7 @@ import 'package:example/note_page.dart';
 import 'package:example/notes_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firestore_helper/firestore_helper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
@@ -33,9 +34,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // Initialise helper
   final FirestoreHelper _firestoreHelper = FirestoreHelper(
     includeAdditionalFields: true,
-    isLoggingEnabled: true,
+    isLoggingEnabled: !kReleaseMode,
   );
   final List<Note> _notes = [];
   final List<StreamSubscription> _streamSubscriptions = [];
@@ -48,6 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final StreamSubscription streamSubscription = _firestoreHelper.listenToElementsStream(
         logReference: '_MyHomePageState.initState',
         query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+        // React to change.
         onDocumentChange: (documentChange) {
           final Note note = Note.fromFirestoreChanged(documentChange);
 
@@ -58,6 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _notes.insert(0, note);
                 break;
               case DocumentChangeType.modified:
+                // Updating item if it's existing.
                 final int index = _notes.indexWhere((element) => element.id == note.id);
 
                 if (index != -1) {
@@ -65,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 break;
               case DocumentChangeType.removed:
+                // Removing item if it's existing.
                 _notes.removeWhere((element) => element.id == note.id);
                 break;
             }
