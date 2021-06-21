@@ -1,114 +1,238 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:example/note.dart';
+import 'package:example/note_page.dart';
+import 'package:example/notes_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firestore_helper/firestore_helper.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Firestore Helper Demo',
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final FirestoreHelper _firestoreHelper = FirestoreHelper(
+    includeAdditionalFields: true,
+    isLoggingEnabled: true,
+  );
+  final List<Note> _notes = [];
+  final List<StreamSubscription> _streamSubscriptions = [];
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialise subscriptions for real-time updates.
+    final StreamSubscription streamSubscription = _firestoreHelper.listenToElementsStream(
+        logReference: '_MyHomePageState.initState',
+        query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+        onDocumentChange: (documentChange) {
+          final Note note = Note.fromFirestoreChanged(documentChange);
+
+          setState(() {
+            switch (documentChange.type) {
+              case DocumentChangeType.added:
+                // Adding new item to the list.
+                _notes.insert(0, note);
+                break;
+              case DocumentChangeType.modified:
+                final int index = _notes.indexWhere((element) => element.id == note.id);
+
+                if (index != -1) {
+                  _notes[index] = note;
+                }
+                break;
+              case DocumentChangeType.removed:
+                _notes.removeWhere((element) => element.id == note.id);
+                break;
+            }
+          });
+        });
+    _streamSubscriptions.add(streamSubscription);
+  }
+
+  @override
+  void dispose() {
+    // Cancel all subscriptions.
+    _streamSubscriptions.forEach((element) {
+      element.cancel();
     });
+    _streamSubscriptions.clear();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('Firestore Helper DEMO'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    return Column(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              SizedBox(height: 8),
+              Text(
+                'Notes',
+                style: Theme.of(context).textTheme.headline6,
+              ),
+              SizedBox(height: 8),
+              Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _notes.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final Note note = _notes[index];
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _firestoreHelper.updateDocument(
+                              Note.kCollectionNotes,
+                              note.id,
+                              Note.update().toJson(),
+                            ),
+                          ),
+                          title: Text(note.text),
+                          subtitle: Text(note.id),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () => _firestoreHelper.deleteDocument(Note.kCollectionNotes, note.id),
+                          ),
+                          onTap: () =>
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => NotePage(noteId: note.id))),
+                        ),
+                        Divider(height: 1),
+                      ],
+                    );
+                  },
+                ),
+              )
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        Divider(height: 1),
+        Expanded(
+          child: Column(
+            children: [
+              SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Options',
+                    style: Theme.of(context).textTheme.headline6,
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              Divider(height: 1),
+              SizedBox(height: 8),
+              Expanded(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ListTile(
+                      title: Text('Add Document'),
+                      subtitle: Text('Adds new Note'),
+                      onTap: () => _firestoreHelper.addDocument(
+                        Note.kCollectionNotes,
+                        Note.update().toJson(),
+                      ),
+                    ),
+                    Divider(height: 1),
+                    ListTile(
+                      title: Text('Delete Documents by query'),
+                      subtitle: Text('Deletes all Notes'),
+                      onTap: () => _firestoreHelper.deleteDocumentsByQuery(
+                        FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+                      ),
+                    ),
+                    Divider(height: 1),
+                    ListTile(
+                      title: Text('Get Elements'),
+                      subtitle: Text('Shows list of all notes'),
+                      onTap: () async {
+                        final List<Note>? notes = await _firestoreHelper.getElements<Note>(
+                            query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+                            logReference: '_MyHomePageState._buildBody.getElements',
+                            onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
+
+                        if (notes != null) {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => NotesPage(notes: _notes)));
+                        }
+                      },
+                    ),
+                    Divider(height: 1),
+                    if (_notes.isNotEmpty) ...[
+                      ListTile(
+                        title: Text('Get Element'),
+                        subtitle: Text('Shows last Note'),
+                        onTap: () async {
+                          final Note? note = await _firestoreHelper.getElement(
+                              Note.kCollectionNotes, _notes.first.id, '_MyHomePageState._buildBody.getElement',
+                              onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
+
+                          if (note != null) {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => NotePage(noteId: note.id)));
+                          }
+                        },
+                      ),
+                      Divider(height: 1),
+                      // Since we don't have pagination - it does not make sense.
+                      ListTile(
+                        title: Text('Are more elements available'),
+                        onTap: () async {
+                          final bool areMoreAvailable = await _firestoreHelper.areMoreElementsAvailable(
+                            query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+                            lastDocumentSnapshot: _notes.last.documentSnapshot,
+                            onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot),
+                          );
+
+                          print(areMoreAvailable);
+                        },
+                      ),
+                      Divider(height: 1),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

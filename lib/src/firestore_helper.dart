@@ -2,11 +2,23 @@ part of firestore_helper;
 
 class FirestoreHelper {
   final FirebaseFirestore _firebaseFirestore;
+
+  @visibleForTesting
+  FirebaseFirestore get firebaseFirestore => _firebaseFirestore;
+
   final LoggingService _loggingService;
+
+  @visibleForTesting
+  LoggingService get loggingService => _loggingService;
 
   /// Flag to determine, if extra fields should be included. Read more
   /// in [_includeAdditionalFieldsIntoMap].
   final bool _includeAdditionalFields;
+
+  /// Flag to determine, if extra fields should be included. Read more
+  /// in [_includeAdditionalFieldsIntoMap].
+  @visibleForTesting
+  bool get includeAdditionalFields => _includeAdditionalFields;
 
   FirestoreHelper({
     required bool includeAdditionalFields,
@@ -308,7 +320,7 @@ class FirestoreHelper {
   }
 
   /// Retrieves [true] if there are more items and [false] if there are no more items for the
-  /// specific [query].
+  /// specific [query]. This method is mostly used for pagination purpose.
   ///
   /// [query] is a query (creativity is not my best strength).
   /// [lastDocumentSnapshot] is the last [DocumentSnapshot] contained within the list of items.
@@ -361,28 +373,6 @@ class FirestoreHelper {
             ' Type: ${docChange.type}. DocId: ${docChange.doc.id}');
         onDocumentChange(docChange);
       });
-    });
-
-    return streamSubscription;
-  }
-
-  /// Listening for the stream of [QuerySnapshot] from Firestore. Used for a purpose
-  /// to return count of items.
-  ///
-  /// [logReference] is some string for logging purpose.
-  /// [query] is query used for this particular call.
-  /// [onCountChange] is a [ValueSetter] which will return count of objects within that specific
-  /// enquiry.
-  StreamSubscription<QuerySnapshot> listenToElementsCountStream({
-    required String logReference,
-    required Query query,
-    required ValueSetter<int> onCountChange,
-  }) {
-    _loggingService.log('FirestoreHelper.listenToElementsCountStream.$logReference');
-
-    final StreamSubscription<QuerySnapshot> streamSubscription = query.snapshots().listen((querySnapshot) {
-      _loggingService.log('FirestoreHelper.listenToElementsCountStream: Count:${querySnapshot.size}');
-      onCountChange(querySnapshot.size);
     });
 
     return streamSubscription;

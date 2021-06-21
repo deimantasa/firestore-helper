@@ -921,28 +921,6 @@ void main() {
     });
   });
 
-  test('listenToElementsCountStream', () async {
-    final StreamController<QuerySnapshot> streamController = StreamController()..add(mockQuerySnapshot);
-    final MockFunction mockFunction = MockFunction();
-    final void Function(int) onCountChange = (count) {
-      mockFunction.call(count);
-    };
-
-    when(mockQuery.snapshots()).thenAnswer((_) => streamController.stream);
-    when(mockQuerySnapshot.size).thenReturn(-1);
-
-    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsCountStream(
-      logReference: '',
-      query: mockQuery,
-      onCountChange: onCountChange,
-    ));
-
-    verify(mockFunction(-1)).called(1);
-    expect(streamSubscription, isNotNull);
-
-    streamController.close();
-  });
-
   test('listenToDocument', () async {
     final StreamController<DocumentSnapshot<Map<String, dynamic>>> streamController = StreamController()
       ..add(mockDocumentSnapshot);
