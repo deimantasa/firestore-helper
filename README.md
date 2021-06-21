@@ -173,8 +173,8 @@ And when listening for `query` changes use
 ## Donations
 If you find this package helpful, donations are welcome!
 - Bitcoin
--- `bc1q6ze04kw5s6dvptk22m9l0yjk43uewykfeks0tj`
+  - `bc1q6ze04kw5s6dvptk22m9l0yjk43uewykfeks0tj`
 - Nano
--- `nano_3pozzop44i7kyz4afg7teno41w4sm8q1genyu9rwdxmidfszpzjxitxq4js7`
+  - `nano_3pozzop44i7kyz4afg7teno41w4sm8q1genyu9rwdxmidfszpzjxitxq4js7`
 - Monero
--- `44yBuwJXmTmc1fEDaxSKTwVz9As3FkzyHZDqmwCXSnNSWi9tUyieeyt2mgnpzusHFRRKcp7p31jAh9CN1G6dZb3F2MT2j3J`
+  - `44yBuwJXmTmc1fEDaxSKTwVz9As3FkzyHZDqmwCXSnNSWi9tUyieeyt2mgnpzusHFRRKcp7p31jAh9CN1G6dZb3F2MT2j3J`
