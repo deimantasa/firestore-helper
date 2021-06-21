@@ -16,7 +16,9 @@ In order to run `example` app on your device:
 1. Create a new `firebase` project;
 2. Enable `Firestore` (simple click on it, select the server and voilia);
 3. Create a new project for Android/iOS device (package must be called `com.firestorehelper`) and put files (`google-services.json`/`GoogleService-Info.plist`) into right directories;
-4. Build the app. Now you are having a fully running DEMO app. 
+4. Build the app. Now you are having a fully running DEMO app.  
+
+Video below demonstrates CRUD and real-time listening capabilities using this package and `Firestore`. 
 
 https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4
 
