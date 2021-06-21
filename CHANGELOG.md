@@ -1,6 +1,10 @@
+## 0.1.2
+
+* Update `pubspec.yaml`.
+
 ## 0.1.1
 
-* Update Readme.
+* Update `README.md`.
 
 ## 0.1.0
 
