@@ -23,7 +23,7 @@ Video below demonstrates CRUD and real-time listening capabilities using this pa
 
 https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4  
 
-### Snipets  
+### Snippets  
 Just a few methods to quickly show this package capabilities. Watch [full demo](https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4) for in-depth dive.
 
 #### Add new document
