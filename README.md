@@ -18,9 +18,22 @@ In order to run `example` app on your device:
 3. Create a new project for Android/iOS device (package must be called `com.firestorehelper`) and put files (`google-services.json`/`GoogleService-Info.plist`) into right directories;
 4. Build the app. Now you are having a fully running DEMO app.  
 
+### Full DEMO
 Video below demonstrates CRUD and real-time listening capabilities using this package and `Firestore`. 
 
-https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4
+https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4  
+
+### Snipets  
+Just a few methods to quickly show this package capabilities. Watch [full demo](https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-923c-661216c5bd21.mp4) for in-depth dive.
+
+#### Add new document
+!["Add new document - real-time"](https://user-images.githubusercontent.com/12739071/122839190-be98d280-d321-11eb-904d-303ce71304ef.gif)  
+
+#### Update existing document  
+!["Update existing document - real-time"](https://user-images.githubusercontent.com/12739071/122839189-be003c00-d321-11eb-9c88-e594df01cec4.gif)  
+
+#### Remove document
+!["Remove document - real-time](https://user-images.githubusercontent.com/12739071/122839186-bc367880-d321-11eb-8cd4-c25d41c32c81.gif)  
 
 ## Feature-set
 
@@ -137,23 +150,23 @@ bool areMoreItemsAvailable = await _firestoreHelper.areMoreElementsAvailable(que
 ### BONUS  
 You can follow [modelling from DEMO project](https://github.com/deimantasa/firestore-helper/blob/main/example/lib/note.dart) - this way you can very easily parse changes from `Firestore`. For instance, when listening to `document` changes, use
 ```
-  factory T.fromFirestore(DocumentSnapshot documentSnapshot) {
+  factory Note.fromFirestore(DocumentSnapshot documentSnapshot) {
     final Map<String, dynamic> data = documentSnapshot.data() as Map<String, dynamic>;
-    final T object = _$TFromJson(data);
+    final Note note = _$NoteFromJson(data);
 
-    object.documentSnapshot = documentSnapshot;
-    return object;
+    note.documentSnapshot = documentSnapshot;
+    return note;
   }
 ```
 And when listening for `query` changes use
 ```
- factory T.fromFirestoreChanged(DocumentChange documentChange) {
+ factory Note.fromFirestoreChanged(DocumentChange documentChange) {
     final Map<String, dynamic> data = documentChange.doc.data() as Map<String, dynamic>;
-    final T object = _$TFromJson(data);
+    final Note note = _$NoteFromJson(data);
 
-    object.documentSnapshot = documentChange.doc;
-    object.documentChangeType = documentChange.type;
-    return object;
+    note.documentSnapshot = documentChange.doc;
+    note.documentChangeType = documentChange.type;
+    return note;
   }
 ```
 
