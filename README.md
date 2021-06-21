@@ -25,7 +25,7 @@ https://user-images.githubusercontent.com/12739071/122766465-c2016f00-d2cb-11eb-
 ## Feature-set
 
 | Feature                                       |   Available    |  Pending  |
-| ----------------------------------------------| :------------: | :-------: | 
+| --------------------------------------------- | :------------: | :-------: | 
 | Add Document To Collection                    |       ✅       |           |  
 | Add Document To SubCollection                 |       ✅       |           |
 | Remove Document From Collection               |       ✅       |           |
