@@ -35,23 +35,20 @@ Just a few methods to quickly show this package capabilities. Watch [full demo](
 #### Remove document
 !["Remove document - real-time](https://user-images.githubusercontent.com/12739071/122839186-bc367880-d321-11eb-8cd4-c25d41c32c81.gif)  
 
-## Feature-set
-
-| Feature                                       | Available      | Pending   |
-| --------------------------------------------- | :------------: | :-------: | 
-| Add Document To Collection                    | ✅             |           |  
-| Add Document To SubCollection                 | ✅             |           |  
-| Remove Document From Collection               | ✅             |           |  
-| Remove Document From SubCollection            | ✅             |           |  
-| Update Document in Collection                 | ✅             |           |  
-| Update Document in SubCollection              | ✅             |           |  
-| Remove Documents from Collection by Query     | ✅             |           |  
-| Listen for a Document in Collection           | ✅             |           |  
-| Listen for a Document in SubCollection        | ✅             |           |  
-| Listen for a Query                            | ✅             |           |  
-| Get list of Items                             | ✅             |           |  
-| Get an Item                                   | ✅             |           |  
-| Check if more items are available             | ✅             |           |  
+## Feature-set  
+ - Add Document To Collection
+ - Add Document To SubCollection
+ - Remove Document From Collection
+ - Remove Document From SubCollection
+ - Update Document in Collection
+ - Update Document in SubCollection
+ - Remove Documents from Collection by Query
+ - Listen for a Document in Collection
+ - Listen for a Document in SubCollection
+ - Listen for a Query
+ - Get list of Items
+ - Get an Item
+ - Check if more items are available
 
 ## Extra Features  
 
