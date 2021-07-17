@@ -1,3 +1,8 @@
+## 0.1.5+2
+
+* Add `stacktrace` into logging errors output.
+* Update package dependencies.
+
 ## 0.1.3 - 0.1.5+1
 
 * Update `README.md`.
