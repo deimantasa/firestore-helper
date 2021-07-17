@@ -68,9 +68,9 @@ class FirestoreHelper {
       }
       _loggingService.log('FirestoreHelper.addDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
       return documentReference.id;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.addDocument: Failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.addDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -107,9 +107,9 @@ class FirestoreHelper {
       _loggingService.log(
           'FirestoreHelper.addSubCollectionDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
       return documentReference.id;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.addSubCollectionDocument: Failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.addSubCollectionDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -128,9 +128,9 @@ class FirestoreHelper {
       _loggingService.log('FirestoreHelper.updateDocument: Collection $collection,'
           ' DocID: $documentId, Update: $update');
       return true;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.updateDocument: Failed. Update: $update, Exception: ${e.toString()}',
+        'FirestoreHelper.updateDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return false;
@@ -162,11 +162,11 @@ class FirestoreHelper {
       _loggingService.log('FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
           ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId, Update: $update');
       return true;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
         'FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
         ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId,'
-        ' Update: $update, Exception: ${e.toString()}',
+        ' Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return false;
@@ -183,8 +183,8 @@ class FirestoreHelper {
       await _firebaseFirestore.collection(collection).doc(documentId).delete();
       _loggingService.log('FirestoreHelper.deleteDocument: Deleted. Collection $collection, DocId: $documentId');
       return true;
-    } catch (e) {
-      _loggingService.log('FirestoreHelper.deleteDocument: Exception: $e', logType: LogType.error);
+    } catch (e, s) {
+      _loggingService.log('FirestoreHelper.deleteDocument: Exception: $e. StackTrace: $s', logType: LogType.error);
       return false;
     }
   }
@@ -207,8 +207,8 @@ class FirestoreHelper {
       await Future.wait(futures);
 
       return true;
-    } catch (e) {
-      _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Exception: $e', logType: LogType.error);
+    } catch (e, s) {
+      _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Exception: $e. StackTrace: $s', logType: LogType.error);
       return false;
     }
   }
@@ -236,8 +236,8 @@ class FirestoreHelper {
           .delete();
       _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Deleted. Collection $collection, DocId: $documentId');
       return true;
-    } catch (e) {
-      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Exception: $e', logType: LogType.error);
+    } catch (e, s) {
+      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Exception: $e. StackTrace: $s', logType: LogType.error);
       return false;
     }
   }
@@ -272,9 +272,9 @@ class FirestoreHelper {
 
       _loggingService.log('FirestoreHelper.getElements.$logReference: Total: ${elements.length}');
       return elements;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
-        'FirestoreTransactionsService.getElements: Exception: $e',
+        'FirestoreTransactionsService.getElements: Exception: $e. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -300,9 +300,9 @@ class FirestoreHelper {
       final T element = onDocumentSnapshot(documentSnapshot)!;
 
       return element;
-    } catch (e) {
+    } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId, Exception: $e',
+        'FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId, Exception: $e. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
