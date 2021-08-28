@@ -47,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     // Initialise subscriptions for real-time updates.
-    final StreamSubscription streamSubscription = _firestoreHelper.listenToElementsStream(
+    final StreamSubscription streamSubscription = _firestoreHelper.listenToDocumentsStream(
         logReference: '_MyHomePageState.initState',
         query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
         // React to change.
@@ -125,8 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           leading: IconButton(
                             icon: Icon(Icons.edit),
                             onPressed: () => _firestoreHelper.updateDocument(
-                              Note.kCollectionNotes,
-                              note.id,
+                              [Note.kCollectionNotes, note.id],
                               Note.update().toJson(),
                             ),
                           ),
@@ -134,7 +133,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           subtitle: Text(note.id),
                           trailing: IconButton(
                             icon: Icon(Icons.delete),
-                            onPressed: () => _firestoreHelper.deleteDocument(Note.kCollectionNotes, note.id),
+                            onPressed: () => _firestoreHelper.deleteDocument([Note.kCollectionNotes, note.id]),
                           ),
                           onTap: () =>
                               Navigator.push(context, MaterialPageRoute(builder: (context) => NotePage(noteId: note.id))),
@@ -173,41 +172,41 @@ class _MyHomePageState extends State<MyHomePage> {
                       title: Text('Add Document'),
                       subtitle: Text('Adds new Note'),
                       onTap: () => _firestoreHelper.addDocument(
-                        Note.kCollectionNotes,
+                        [Note.kCollectionNotes],
                         Note.update().toJson(),
                       ),
                     ),
                     Divider(height: 1),
-                    ListTile(
-                      title: Text('Delete Documents by query'),
-                      subtitle: Text('Deletes all Notes'),
-                      onTap: () => _firestoreHelper.deleteDocumentsByQuery(
-                        FirebaseFirestore.instance.collection(Note.kCollectionNotes),
-                      ),
-                    ),
-                    Divider(height: 1),
-                    ListTile(
-                      title: Text('Get Elements'),
-                      subtitle: Text('Shows list of all notes'),
-                      onTap: () async {
-                        final List<Note>? notes = await _firestoreHelper.getElements<Note>(
-                            query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
-                            logReference: '_MyHomePageState._buildBody.getElements',
-                            onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
-
-                        if (notes != null) {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => NotesPage(notes: _notes)));
-                        }
-                      },
-                    ),
-                    Divider(height: 1),
                     if (_notes.isNotEmpty) ...[
                       ListTile(
-                        title: Text('Get Element'),
+                        title: Text('Delete Documents by query'),
+                        subtitle: Text('Deletes all Notes'),
+                        onTap: () => _firestoreHelper.deleteDocumentsByQuery(
+                          FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+                        ),
+                      ),
+                      Divider(height: 1),
+                      ListTile(
+                        title: Text('Get Documents'),
+                        subtitle: Text('Shows list of all notes'),
+                        onTap: () async {
+                          final List<Note>? notes = await _firestoreHelper.getDocuments<Note>(
+                              query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
+                              logReference: '_MyHomePageState._buildBody.getElements',
+                              onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
+
+                          if (notes != null) {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => NotesPage(notes: _notes)));
+                          }
+                        },
+                      ),
+                      Divider(height: 1),
+                      ListTile(
+                        title: Text('Get Document'),
                         subtitle: Text('Shows last Note'),
                         onTap: () async {
-                          final Note? note = await _firestoreHelper.getElement(
-                              Note.kCollectionNotes, _notes.first.id, '_MyHomePageState._buildBody.getElement',
+                          final Note? note = await _firestoreHelper.getDocument(
+                              [Note.kCollectionNotes, _notes.first.id], '_MyHomePageState._buildBody.getElement',
                               onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
 
                           if (note != null) {
@@ -220,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ListTile(
                         title: Text('Are more elements available'),
                         onTap: () async {
-                          final bool areMoreAvailable = await _firestoreHelper.areMoreElementsAvailable(
+                          final bool areMoreAvailable = await _firestoreHelper.areMoreDocumentsAvailable(
                             query: FirebaseFirestore.instance.collection(Note.kCollectionNotes),
                             lastDocumentSnapshot: _notes.last.documentSnapshot,
                             onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot),

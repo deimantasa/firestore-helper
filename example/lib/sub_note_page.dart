@@ -30,11 +30,8 @@ class _SubNotePageState extends State<SubNotePage> {
     super.initState();
 
     // Initialise new stream that listens to Note real-time updates
-    subNoteStreamSubscription = _firestoreHelper.listenToSubCollectionDocument(
-      collection: Note.kCollectionNotes,
-      documentId: widget.noteId,
-      subCollection: Note.kSubCollectionNotes,
-      subCollectionDocumentId: widget.subNoteId,
+    subNoteStreamSubscription = _firestoreHelper.listenToDocument(
+      [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes, widget.subNoteId],
       logReference: '_SubNotePageState.initState:',
       onDocumentChange: (documentChange) {
         final Note note = Note.fromFirestore(documentChange);
@@ -74,12 +71,9 @@ class _SubNotePageState extends State<SubNotePage> {
           ListTile(
             leading: IconButton(
               icon: Icon(Icons.edit),
-              onPressed: () => _firestoreHelper.updateSubCollectionsDocument(
-                collection: Note.kCollectionNotes,
-                documentId: widget.noteId,
-                subCollection: Note.kSubCollectionNotes,
-                subCollectionDocumentId: widget.subNoteId,
-                update: Note.update().toJson(),
+              onPressed: () => _firestoreHelper.updateDocument(
+                [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes, widget.subNoteId],
+                Note.update().toJson(),
               ),
             ),
             title: Text(localSubNote.text),
@@ -87,11 +81,8 @@ class _SubNotePageState extends State<SubNotePage> {
             trailing: IconButton(
               icon: Icon(Icons.delete),
               onPressed: () {
-                _firestoreHelper.deleteSubCollectionDocument(
-                  collection: Note.kCollectionNotes,
-                  documentId: widget.noteId,
-                  subCollection: Note.kSubCollectionNotes,
-                  subCollectionDocumentId: widget.subNoteId,
+                _firestoreHelper.deleteDocument(
+                  [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes, widget.subNoteId],
                 );
                 Navigator.pop(context);
               },

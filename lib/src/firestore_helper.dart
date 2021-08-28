@@ -9,10 +9,13 @@ class FirestoreHelper {
   final bool _includeAdditionalFields;
 
   /// Exclude from coverage since we are using special `test` constructor.
+  ///
+  /// [includeAdditionalFields] determines if extra fields (createdAt, etc.) will be included.
+  /// [isLoggingEnabled] determines if logging is enabled. By default it is disabled in Release mode.
   // coverage:ignore-start
   FirestoreHelper({
     required bool includeAdditionalFields,
-    required bool isLoggingEnabled,
+    bool isLoggingEnabled = !kReleaseMode,
   })  : this._includeAdditionalFields = includeAdditionalFields,
         this._firebaseFirestore = FirebaseFirestore.instance,
         this._loggingService = LoggingService(
@@ -47,69 +50,44 @@ class FirestoreHelper {
 
   /// Adds a new document into the collection in Firebase.
   ///
-  /// [collection] is the name of the collection.
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
   /// [update] is the data which will be added to the document.
-  /// [documentId] is the optional ID. If it is specified - document will be created.
-  /// with exactly that ID. Otherwise, random ID will be generated.
+  /// [documentId] is the optional ID. If it is specified - [paths] will be amended with your specified [documentId].
+
   Future<String?> addDocument(
-    String collection,
+    List<String> paths,
     Map<String, dynamic> update, {
     String? documentId,
   }) async {
+    assert(
+      (documentId != null && paths.length % 2 == 0) || (documentId == null && paths.length % 2 == 1),
+      'paths must be uneven number if documentId is provided and even number if documentId is not provided',
+    );
+
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
-      final DocumentReference documentReference;
-
+      final String pathToDocument;
+      // If docId exists, set document with this particular ID
       if (documentId != null) {
-        documentReference = _firebaseFirestore.collection(collection).doc(documentId);
-        await documentReference.set(update);
-      } else {
-        documentReference = await _firebaseFirestore.collection(collection).add(update);
+        paths.add(documentId);
+        pathToDocument = paths.join('/');
+
+        await _firebaseFirestore.doc(pathToDocument).set(update);
+        _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
+        return documentId;
       }
-      _loggingService.log('FirestoreHelper.addDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
-      return documentReference.id;
+      // If docId doesn't exist, add new document
+      else {
+        pathToDocument = paths.join('/');
+        final DocumentReference documentReference = await _firebaseFirestore.collection(pathToDocument).add(update);
+        _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
+
+        return documentReference.id;
+      }
     } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.addDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
-        logType: LogType.error,
-      );
-      return null;
-    }
-  }
-
-  /// Adds a new document into the sub-collection in Firebase.
-  ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
-  /// [subCollection] is the name of the sub collection within that document.
-  /// [update] is the data which will be added to the document.
-  /// [subCollectionDocumentId] is the optional ID. If it is specified - document will be created.
-  /// with exactly that ID. Otherwise, random ID will be generated.
-  Future<String?> addSubCollectionDocument({
-    required String collection,
-    required String documentId,
-    required String subCollection,
-    required Map<String, dynamic> update,
-    String? subCollectionDocumentId,
-  }) async {
-    try {
-      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
-      final DocumentReference documentReference;
-
-      if (subCollectionDocumentId != null) {
-        documentReference =
-            _firebaseFirestore.collection(collection).doc(documentId).collection(subCollection).doc(subCollectionDocumentId);
-        await documentReference.set(update);
-      } else {
-        documentReference = await _firebaseFirestore.collection(collection).doc(documentId).collection(subCollection).add(update);
-      }
-
-      _loggingService.log(
-          'FirestoreHelper.addSubCollectionDocument: Collection $collection, DocID: ${documentReference.id}, Update: $update');
-      return documentReference.id;
-    } catch (e, s) {
-      _loggingService.log(
-        'FirestoreHelper.addSubCollectionDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
+        'FirestoreHelper.addDocument: Failed. Path: $paths, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -118,55 +96,20 @@ class FirestoreHelper {
 
   /// Updates existing document in Firebase.
   ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
   /// [update] is the data which will be updated within that document.
-  Future<bool> updateDocument(String collection, String documentId, Map<String, dynamic> update) async {
-    try {
-      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update);
-      await _firebaseFirestore.collection(collection).doc(documentId).update(update);
-      _loggingService.log('FirestoreHelper.updateDocument: Collection $collection,'
-          ' DocID: $documentId, Update: $update');
-      return true;
-    } catch (e, s) {
-      _loggingService.log(
-        'FirestoreHelper.updateDocument: Failed. Update: $update, Exception: ${e.toString()}. StackTrace: $s',
-        logType: LogType.error,
-      );
-      return false;
-    }
-  }
+  Future<bool> updateDocument(List<String> paths, Map<String, dynamic> update) async {
+    final String pathToDocument = getPathToDocument(paths);
 
-  /// Updates existing sub-collection document in Firebase.
-  ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
-  /// [subCollection] is the name of the document within that collection.
-  /// [subCollectionDocumentId] is the ID of the document within that collection.
-  /// [update] is the data which will be updated within that document.
-  Future<bool> updateSubCollectionsDocument({
-    required String collection,
-    required String documentId,
-    required String subCollection,
-    required String subCollectionDocumentId,
-    required Map<String, dynamic> update,
-  }) async {
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update);
-      await _firebaseFirestore
-          .collection(collection)
-          .doc(documentId)
-          .collection(subCollection)
-          .doc(subCollectionDocumentId)
-          .update(update);
-      _loggingService.log('FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
-          ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId, Update: $update');
+      await _firebaseFirestore.doc(pathToDocument).update(update);
+      _loggingService.log('FirestoreHelper.updateDocument: Path: $pathToDocument, Update: $update');
       return true;
     } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.updateSubCollectionsDocument: Collection $collection, CollectionDocID: $documentId,'
-        ' SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId,'
-        ' Update: $update, Exception: ${e.toString()}. StackTrace: $s',
+        'FirestoreHelper.updateDocument: Failed. Path: $pathToDocument, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return false;
@@ -175,16 +118,20 @@ class FirestoreHelper {
 
   /// Deletes existing document from Firebase.
   ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
-  Future<bool> deleteDocument(String collection, String documentId) async {
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
+  Future<bool> deleteDocument(List<String> paths) async {
+    final String pathToDocument = getPathToDocument(paths);
+
     try {
-      _loggingService.log('FirestoreHelper.deleteDocument: Deleting. Collection $collection, DocId: $documentId');
-      await _firebaseFirestore.collection(collection).doc(documentId).delete();
-      _loggingService.log('FirestoreHelper.deleteDocument: Deleted. Collection $collection, DocId: $documentId');
+      await _firebaseFirestore.doc(pathToDocument).delete();
+      _loggingService.log('FirestoreHelper.deleteDocument: Deleted. Path: $pathToDocument');
       return true;
     } catch (e, s) {
-      _loggingService.log('FirestoreHelper.deleteDocument: Exception: $e. StackTrace: $s', logType: LogType.error);
+      _loggingService.log(
+        'FirestoreHelper.deleteDocument: Path: $pathToDocument, Exception: $e. StackTrace: $s',
+        logType: LogType.error,
+      );
       return false;
     }
   }
@@ -213,46 +160,16 @@ class FirestoreHelper {
     }
   }
 
-  /// Deletes existing document from sub-collection in Firebase.
-  ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
-  /// [subCollection] is the name of the document within that collection.
-  /// [subCollectionDocumentId] is the ID of the document within that collection.
-  Future<bool> deleteSubCollectionDocument({
-    required String collection,
-    required String documentId,
-    required String subCollection,
-    required String subCollectionDocumentId,
-  }) async {
-    try {
-      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Deleting. Collection $collection, DocId: $documentId'
-          ' SubCollection $subCollection, SubCollectionDocId: $subCollectionDocumentId');
-      await _firebaseFirestore
-          .collection(collection)
-          .doc(documentId)
-          .collection(subCollection)
-          .doc(subCollectionDocumentId)
-          .delete();
-      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Deleted. Collection $collection, DocId: $documentId');
-      return true;
-    } catch (e, s) {
-      _loggingService.log('FirestoreHelper.deleteSubCollectionDocument: Exception: $e. StackTrace: $s', logType: LogType.error);
-      return false;
-    }
-  }
-
-  /// Retrieves list of items from Firestore. It simplifies pagination flow, so services doesn't need
+  /// Retrieves list of documents from Firestore. It simplifies pagination flow, so services doesn't need
   /// to contain boilerplate code.
   ///
-  /// [userId] is document id of the [User].
   /// [query] is the query used for the firestore.
   /// [logReference] is reference string for logging purposes so we know when this query gets executed
   /// and what executes it.
   /// [onDocumentSnapshot] is a method with return type of an object.
   /// [lastDocumentSnapshot] must not be null if pagination is required as it is an indicator of where to
   /// continue query.
-  Future<List<T>?> getElements<T>({
+  Future<List<T>?> getDocuments<T>({
     required Query query,
     required String logReference,
     required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
@@ -261,7 +178,7 @@ class FirestoreHelper {
     final bool isMoreQuery = lastDocumentSnapshot != null;
     final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
-    _loggingService.log('FirestoreHelper.getElements.$logReference: More: $isMoreQuery');
+    _loggingService.log('FirestoreHelper.getDocuments.$logReference: More: $isMoreQuery');
     try {
       final QuerySnapshot querySnapshot = await currentQuery.get();
       final List<T> elements = querySnapshot.docs.map((e) {
@@ -270,39 +187,40 @@ class FirestoreHelper {
         return element;
       }).toList();
 
-      _loggingService.log('FirestoreHelper.getElements.$logReference: Total: ${elements.length}');
+      _loggingService.log('FirestoreHelper.getDocuments.$logReference: Total: ${elements.length}');
       return elements;
     } catch (e, s) {
       _loggingService.log(
-        'FirestoreTransactionsService.getElements: Exception: $e. StackTrace: $s',
+        'FirestoreTransactionsService.getDocuments: Exception: $e. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
     }
   }
 
-  /// Retrieves an item from Firestore.
+  /// Retrieves a document from Firestore.
   ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
   /// [logReference] is reference string for logging purposes so we know when this query gets executed
   /// and what executes it.
   /// [onDocumentSnapshot] is a method with return type of an object.
-  Future<T?> getElement<T>(
-    String collection,
-    String documentId,
+  Future<T?> getDocument<T>(
+    List<String> paths,
     String logReference, {
     required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
+    final String pathToDocument = getPathToDocument(paths);
+
     try {
-      _loggingService.log('FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId');
-      final DocumentSnapshot documentSnapshot = await _firebaseFirestore.collection(collection).doc(documentId).get();
+      _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
+      final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
       final T element = onDocumentSnapshot(documentSnapshot)!;
 
       return element;
     } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.getElement.$logReference: Collection: $collection, DocId: $documentId, Exception: $e. StackTrace: $s',
+        'FirestoreHelper.getDocument.$logReference: Path: $pathToDocument, Exception: $e. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -315,25 +233,25 @@ class FirestoreHelper {
   /// [query] is a query (creativity is not my best strength).
   /// [lastDocumentSnapshot] is the last [DocumentSnapshot] contained within the list of items.
   /// [onDocumentSnapshot] is a method with return type of an object.
-  Future<bool> areMoreElementsAvailable<T>({
+  Future<bool> areMoreDocumentsAvailable<T>({
     required Query query,
     required DocumentSnapshot lastDocumentSnapshot,
     required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
-    _loggingService.log('FirestoreHelper.areMoreElementsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
+    _loggingService.log('FirestoreHelper.areMoreDocumentsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
 
-    final List<T>? elements = await getElements<T>(
-      query: query..limit(1),
-      logReference: 'FirestoreHelper.areMoreElementsAvailable',
+    final List<T>? elements = await getDocuments<T>(
+      query: query.limit(1),
+      logReference: 'FirestoreHelper.areMoreDocumentsAvailable',
       onDocumentSnapshot: (documentSnapshot) => onDocumentSnapshot(documentSnapshot),
       lastDocumentSnapshot: lastDocumentSnapshot,
     );
 
     if (elements == null || elements.isEmpty) {
-      _loggingService.log('FirestoreHelper.areMoreElementsAvailable: No more elements');
+      _loggingService.log('FirestoreHelper.areMoreDocumentsAvailable: No more elements');
       return false;
     } else {
-      _loggingService.log('FirestoreHelper.areMoreElementsAvailable: More elements exists.');
+      _loggingService.log('FirestoreHelper.areMoreDocumentsAvailable: More elements exists.');
       return true;
     }
   }
@@ -345,7 +263,7 @@ class FirestoreHelper {
   /// [onDocumentChange] is a [ValueSetter] which will return [DocumentChange] object from firestore.
   /// [lastDocumentSnapshot] is the snapshot of the last document. If [lastDocumentSnapshot] is null, it means
   /// there will be no pagination.
-  StreamSubscription<QuerySnapshot> listenToElementsStream({
+  StreamSubscription<QuerySnapshot> listenToDocumentsStream({
     required String logReference,
     required Query query,
     required ValueSetter<DocumentChange> onDocumentChange,
@@ -355,11 +273,11 @@ class FirestoreHelper {
     final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
     _loggingService
-        .log('FirestoreHelper.listenToElementsStream.$logReference: Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
+        .log('FirestoreHelper.listenToDocumentsStream.$logReference: Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
 
     final StreamSubscription<QuerySnapshot> streamSubscription = currentQuery.snapshots().listen((event) {
       event.docChanges.forEach((docChange) {
-        _loggingService.log('FirestoreHelper.listenToElementsStream.$logReference:'
+        _loggingService.log('FirestoreHelper.listenToDocumentsStream.$logReference:'
             ' Type: ${docChange.type}. DocId: ${docChange.doc.id}');
         onDocumentChange(docChange);
       });
@@ -371,57 +289,33 @@ class FirestoreHelper {
   /// Listening for the stream of [DocumentSnapshot] from Firestore.
   /// In case of any changes - [onDocumentChange] will get fired.
   ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
   /// [logReference] is some string for logging purpose.
   /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
   /// that particular stream.
   StreamSubscription<DocumentSnapshot> listenToDocument<T>(
-    String collection,
-    String documentId,
-    String logReference, {
+    List<String> paths, {
+    required String logReference,
     required ValueSetter<DocumentSnapshot> onDocumentChange,
   }) {
+    final String pathToDocument = getPathToDocument(paths);
     final StreamSubscription<DocumentSnapshot> streamSubscription =
-        _firebaseFirestore.collection(collection).doc(documentId).snapshots().listen((documentSnapshot) {
-      _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event.'
-          ' Collection: $collection, DocId: $documentId');
+        _firebaseFirestore.doc(pathToDocument).snapshots().listen((documentSnapshot) {
+      _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event. Path: $pathToDocument');
       onDocumentChange(documentSnapshot);
     });
 
     return streamSubscription;
   }
 
-  /// Listening for the stream of [DocumentSnapshot] from Firestore.
-  /// In case of any changes - [onDocumentChange] will get fired.
-  ///
-  /// [collection] is the name of the collection.
-  /// [documentId] is the ID of the document within that collection.
-  /// [subCollection] is the name of the collection.
-  /// [subCollectionDocumentId] is the ID of the document within that collection.
-  /// [logReference] is some string for logging purpose.
-  /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
-  /// that particular stream.
-  StreamSubscription<DocumentSnapshot> listenToSubCollectionDocument<T>({
-    required String collection,
-    required String documentId,
-    required String subCollection,
-    required String subCollectionDocumentId,
-    required String logReference,
-    required ValueSetter<DocumentSnapshot> onDocumentChange,
-  }) {
-    final StreamSubscription<DocumentSnapshot> streamSubscription = _firebaseFirestore
-        .collection(collection)
-        .doc(documentId)
-        .collection(subCollection)
-        .doc(subCollectionDocumentId)
-        .snapshots()
-        .listen((event) {
-      _loggingService.log('FirestoreHelper.listenToSubCollectionDocument.$logReference: New event. Collection: $collection, '
-          'DocId: $documentId, SubCollection: $subCollection, SubCollectionDocId: $subCollectionDocumentId');
-      onDocumentChange(event);
-    });
-
-    return streamSubscription;
+  @visibleForTesting
+  String getPathToDocument(List<String> paths) {
+    assert(paths.isNotEmpty, 'paths cannot be empty. It at least has to contain of `collection` and `document` pair.');
+    assert(
+      paths.length % 2 == 0,
+      'paths must not be even number. It seems you are pointing to the collection instead of the document. Double check if ${paths.last} is a document.',
+    );
+    return paths.join('/');
   }
 }

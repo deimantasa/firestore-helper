@@ -31,17 +31,20 @@ class _NotePageState extends State<NotePage> {
     super.initState();
 
     // Initialise new stream that listens to Note real-time updates
-    final StreamSubscription noteStreamSubscription = _firestoreHelper
-        .listenToDocument(Note.kCollectionNotes, widget.noteId, '_NotePageState.initState:', onDocumentChange: (documentChange) {
-      final Note note = Note.fromFirestore(documentChange);
+    final StreamSubscription noteStreamSubscription = _firestoreHelper.listenToDocument(
+      [Note.kCollectionNotes, widget.noteId],
+      logReference: '_NotePageState.initState:',
+      onDocumentChange: (documentChange) {
+        final Note note = Note.fromFirestore(documentChange);
 
-      setState(() {
-        this._note = note;
-      });
-    });
+        setState(() {
+          this._note = note;
+        });
+      },
+    );
 
     // Initialise new stream that listens to all SubNotes within Note in real-time
-    final StreamSubscription subNotesStreamSubscription = _firestoreHelper.listenToElementsStream(
+    final StreamSubscription subNotesStreamSubscription = _firestoreHelper.listenToDocumentsStream(
         logReference: '_NotePageState.initState:',
         query:
             FirebaseFirestore.instance.collection(Note.kCollectionNotes).doc(widget.noteId).collection(Note.kSubCollectionNotes),
@@ -103,8 +106,7 @@ class _NotePageState extends State<NotePage> {
             leading: IconButton(
               icon: Icon(Icons.edit),
               onPressed: () => _firestoreHelper.updateDocument(
-                Note.kCollectionNotes,
-                localNote.id,
+                [Note.kCollectionNotes, localNote.id],
                 Note.update().toJson(),
               ),
             ),
@@ -113,7 +115,7 @@ class _NotePageState extends State<NotePage> {
             trailing: IconButton(
               icon: Icon(Icons.delete),
               onPressed: () {
-                _firestoreHelper.deleteDocument(Note.kCollectionNotes, widget.noteId);
+                _firestoreHelper.deleteDocument([Note.kCollectionNotes, widget.noteId]);
                 Navigator.pop(context);
               },
             ),
@@ -138,23 +140,17 @@ class _NotePageState extends State<NotePage> {
                     ListTile(
                       leading: IconButton(
                         icon: Icon(Icons.edit),
-                        onPressed: () => _firestoreHelper.updateSubCollectionsDocument(
-                          collection: Note.kCollectionNotes,
-                          documentId: widget.noteId,
-                          subCollection: Note.kSubCollectionNotes,
-                          subCollectionDocumentId: subNote.id,
-                          update: Note.update().toJson(),
+                        onPressed: () => _firestoreHelper.updateDocument(
+                          [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes, subNote.id],
+                          Note.update().toJson(),
                         ),
                       ),
                       title: Text(subNote.text),
                       subtitle: Text(subNote.id),
                       trailing: IconButton(
                         icon: Icon(Icons.delete),
-                        onPressed: () => _firestoreHelper.deleteSubCollectionDocument(
-                          collection: Note.kCollectionNotes,
-                          documentId: widget.noteId,
-                          subCollection: Note.kSubCollectionNotes,
-                          subCollectionDocumentId: subNote.id,
+                        onPressed: () => _firestoreHelper.deleteDocument(
+                          [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes, subNote.id],
                         ),
                       ),
                       onTap: () => Navigator.push(
@@ -184,11 +180,9 @@ class _NotePageState extends State<NotePage> {
           ListTile(
             title: Text('Add Sub Collection Document'),
             subtitle: Text('Adds new Sub Note within this note'),
-            onTap: () => _firestoreHelper.addSubCollectionDocument(
-              collection: Note.kCollectionNotes,
-              documentId: widget.noteId,
-              subCollection: Note.kSubCollectionNotes,
-              update: Note.update().toJson(),
+            onTap: () => _firestoreHelper.addDocument(
+              [Note.kCollectionNotes, widget.noteId, Note.kSubCollectionNotes],
+              Note.update().toJson(),
             ),
           ),
         ],

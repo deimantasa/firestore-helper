@@ -721,7 +721,7 @@ void main() {
         when(onQueryGet()).thenAnswer((_) async => mockQuerySnapshot);
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
 
-        final List<String>? elements = await firestoreHelper.getElements<String>(
+        final List<String>? elements = await firestoreHelper.getDocuments<String>(
           query: mockQuery,
           logReference: '',
           onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -740,7 +740,7 @@ void main() {
         when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
 
-        final List<String>? elements = await firestoreHelper.getElements<String>(
+        final List<String>? elements = await firestoreHelper.getDocuments<String>(
           query: mockQuery,
           logReference: '',
           onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -760,7 +760,7 @@ void main() {
       when(onStartAfterDocument()).thenReturn(mockQuery);
       when(onQueryGet()).thenThrow(Exception('error'));
 
-      final List<String>? elements = await firestoreHelper.getElements<String>(
+      final List<String>? elements = await firestoreHelper.getDocuments<String>(
         query: mockQuery,
         logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -783,7 +783,7 @@ void main() {
       when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
 
-      final String? element = await firestoreHelper.getElement<String>(
+      final String? element = await firestoreHelper.getDocument<String>(
         'collection',
         'docId',
         '',
@@ -800,7 +800,7 @@ void main() {
 
       when(onCollection()).thenThrow(Exception('error'));
 
-      final String? element = await firestoreHelper.getElement<String>(
+      final String? element = await firestoreHelper.getDocument<String>(
         'collection',
         'docId',
         '',
@@ -827,7 +827,7 @@ void main() {
       when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
       when(mockDocumentSnapshot.id).thenReturn('docId');
 
-      final bool result = await firestoreHelper.areMoreElementsAvailable(
+      final bool result = await firestoreHelper.areMoreDocumentsAvailable(
         query: mockQuery,
         lastDocumentSnapshot: mockDocumentSnapshot,
         onDocumentSnapshot: (_) => '',
@@ -847,7 +847,7 @@ void main() {
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
         when(mockDocumentSnapshot.id).thenReturn('docId');
 
-        final bool result = await firestoreHelper.areMoreElementsAvailable(
+        final bool result = await firestoreHelper.areMoreDocumentsAvailable(
           query: mockQuery,
           lastDocumentSnapshot: mockDocumentSnapshot,
           onDocumentSnapshot: (_) => '',
@@ -864,7 +864,7 @@ void main() {
         when(mockQuerySnapshot.docs).thenReturn([]);
         when(mockDocumentSnapshot.id).thenReturn('docId');
 
-        final bool result = await firestoreHelper.areMoreElementsAvailable(
+        final bool result = await firestoreHelper.areMoreDocumentsAvailable(
           query: mockQuery,
           lastDocumentSnapshot: mockDocumentSnapshot,
           onDocumentSnapshot: (_) => '',
@@ -890,7 +890,7 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsStream(
+      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
@@ -916,7 +916,7 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToElementsStream(
+      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
