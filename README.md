@@ -77,13 +77,15 @@ thus we simply specify that if build is in release mode - logs won't be enabled.
 ### Data manipulation  
 For various CRUD operations, simply use exposed methods from `FirebaseHelper`. For example:  
 ```
-bool isSuccess = await _firestoreHelper.addDocument(collection, update);
+bool isSuccess = await _firestoreHelper.addDocument([collection], update);
 
-bool isSuccess = await _firestoreHelper.deleteSubCollectionDocument(collection: collection, documentId: documentId, subCollection: subCollection, subCollectionDocumentId: subCollectionDocumentId);
+bool isSuccess = await _firestoreHelper.addDocumentWithId([collection, documentId], update);
 
-T? item = await _firestoreHelper.getElement<T>(collection, documentId, logReference, onDocumentSnapshot: onDocumentSnapshot);
+bool isSuccess = await _firestoreHelper.deleteDocument([collection, documentId, subCollection, subCollectionDocumentId]);
 
-List<T>? items = await _firestoreHelper.getElements<T>(query: query, logReference: logReference, onDocumentSnapshot: onDocumentSnapshot);
+T? item = await _firestoreHelper.getDocument<T>([collection, documentId], logReference, onDocumentSnapshot: onDocumentSnapshot);
+
+List<T>? items = await _firestoreHelper.getDocuments<T>(query: query, logReference: logReference, onDocumentSnapshot: onDocumentSnapshot);
 ```
 
 Methods are equipped with logging mechanism which will give you much faster way of catching any potential bugs.  
@@ -104,7 +106,7 @@ your stateful widget
     super.initState();
     
     // Initialise subscriptions for real-time updates.
-    final StreamSubscription streamSubscription = _firestoreHelper.listenToElementsStream(
+    final StreamSubscription streamSubscription = _firestoreHelper.listenToDocumentsStream(
         logReference: 'some helpful message',
         query: FirebaseFirestore.instance.collection(myCollectionName),
         onDocumentChange: (documentChange) {
@@ -141,7 +143,7 @@ add new `StreamSubscription`s there in order to have all real-time updates for e
 
 By the way - to understand if we can continue paginate, use 
 ```
-bool areMoreItemsAvailable = await _firestoreHelper.areMoreElementsAvailable(query: query, lastDocumentSnapshot: lastDocumentSnapshot, onDocumentSnapshot: onDocumentSnapshot);
+bool areMoreItemsAvailable = await _firestoreHelper.areMoreDocumentsAvailable(query: query, lastDocumentSnapshot: lastDocumentSnapshot, onDocumentSnapshot: onDocumentSnapshot);
 ```
 
 ### BONUS  

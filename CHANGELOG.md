@@ -1,9 +1,17 @@
+## 0.2.0+3
+
+* BREAKING CHANGES
+* Remove limitation towards collection/document nesting  
+* Removed subCollection related methods and consolidate them within generic `document` methods
+* Now there are separate `addDocument` and `addDocumentWithId` available
+* Renamed methods (moved from `element` to `document`)
+
 ## 0.1.5+2
 
 * Add `stacktrace` into logging errors output.
 * Update package dependencies.
 
-## 0.1.3 - 0.1.5+1
+## 0.1.5+1
 
 * Update `README.md`.
 
