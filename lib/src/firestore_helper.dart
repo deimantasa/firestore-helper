@@ -50,45 +50,57 @@ class FirestoreHelper {
 
   /// Adds a new document into the collection in Firebase.
   ///
-  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
-  /// be constructed to `myCollection/documentId`.
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId, mySubCollection` which will
+  /// be constructed to `myCollection/documentId/mySubCollection`.
+  /// Last item in [paths] must be collection.
   /// [update] is the data which will be added to the document.
-  /// [documentId] is the optional ID. If it is specified - [paths] will be amended with your specified [documentId].
 
-  Future<String?> addDocument(
-    List<String> paths,
-    Map<String, dynamic> update, {
-    String? documentId,
-  }) async {
+  Future<String?> addDocument(List<String> paths, Map<String, dynamic> update) async {
     assert(
-      paths.length % 2 == 1,
-      'paths must be uneven number since it has to point to the collection. If you want to specify documentId, provide'
-      'it as a parameter [documentId]',
-    );
+        paths.length % 2 == 1,
+        'paths must be uneven number since it has to point to the collection. If you want'
+        'to include specific documentId, use [addDocumentWithId] method.');
 
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
-      final String pathToDocument;
-      // If docId exists, set document with this particular ID
-      if (documentId != null) {
-        paths.add(documentId);
-        pathToDocument = paths.join('/');
 
-        await _firebaseFirestore.doc(pathToDocument).set(update);
-        _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
-        return documentId;
-      }
-      // If docId doesn't exist, add new document
-      else {
-        pathToDocument = paths.join('/');
-        final DocumentReference documentReference = await _firebaseFirestore.collection(pathToDocument).add(update);
-        _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
+      final String pathToDocument = paths.join('/');
+      final DocumentReference documentReference = await _firebaseFirestore.collection(pathToDocument).add(update);
+      _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
 
-        return documentReference.id;
-      }
+      return documentReference.id;
     } catch (e, s) {
       _loggingService.log(
         'FirestoreHelper.addDocument: Failed. Path: $paths, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
+        logType: LogType.error,
+      );
+      return null;
+    }
+  }
+
+  /// Adds a new document into the collection in Firebase.
+  ///
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
+  /// Last item in [paths] must be documentId.
+  /// [update] is the data which will be added to the document.
+
+  Future<String?> addDocumentWithId(List<String> paths, Map<String, dynamic> update) async {
+    assert(
+        paths.length % 2 == 0,
+        'paths must be even number since it has to point to the document. If you want'
+        'to not include specific documentId, use [addDocument] method.');
+
+    try {
+      if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
+      final String pathToDocument = getPathToDocument(paths);
+
+      await _firebaseFirestore.doc(pathToDocument).set(update);
+      _loggingService.log('FirestoreHelper.addDocumentWithId: Path: $pathToDocument, Update: $update');
+      return paths.last;
+    } catch (e, s) {
+      _loggingService.log(
+        'FirestoreHelper.addDocumentWithId: Failed. Path: $paths, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return null;
@@ -161,6 +173,35 @@ class FirestoreHelper {
     }
   }
 
+  /// Retrieves a document from Firestore.
+  ///
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
+  /// [logReference] is reference string for logging purposes so we know when this query gets executed
+  /// and what executes it.
+  /// [onDocumentSnapshot] is a method with return type of an object.
+  Future<T?> getDocument<T>(
+    List<String> paths, {
+    required String logReference,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+  }) async {
+    final String pathToDocument = getPathToDocument(paths);
+
+    try {
+      _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
+      final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
+      final T element = onDocumentSnapshot(documentSnapshot)!;
+
+      return element;
+    } catch (e, s) {
+      _loggingService.log(
+        'FirestoreHelper.getDocument.$logReference: Path: $pathToDocument, Exception: $e. StackTrace: $s',
+        logType: LogType.error,
+      );
+      return null;
+    }
+  }
+
   /// Retrieves list of documents from Firestore. It simplifies pagination flow, so services doesn't need
   /// to contain boilerplate code.
   ///
@@ -199,35 +240,6 @@ class FirestoreHelper {
     }
   }
 
-  /// Retrieves a document from Firestore.
-  ///
-  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
-  /// be constructed to `myCollection/documentId`.
-  /// [logReference] is reference string for logging purposes so we know when this query gets executed
-  /// and what executes it.
-  /// [onDocumentSnapshot] is a method with return type of an object.
-  Future<T?> getDocument<T>(
-    List<String> paths, {
-    required String logReference,
-    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
-  }) async {
-    final String pathToDocument = getPathToDocument(paths);
-
-    try {
-      _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
-      final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
-      final T element = onDocumentSnapshot(documentSnapshot)!;
-
-      return element;
-    } catch (e, s) {
-      _loggingService.log(
-        'FirestoreHelper.getDocument.$logReference: Path: $pathToDocument, Exception: $e. StackTrace: $s',
-        logType: LogType.error,
-      );
-      return null;
-    }
-  }
-
   /// Retrieves [true] if there are more items and [false] if there are no more items for the
   /// specific [query]. This method is mostly used for pagination purpose.
   ///
@@ -257,6 +269,29 @@ class FirestoreHelper {
     }
   }
 
+  /// Listening for the stream of [DocumentSnapshot] from Firestore.
+  /// In case of any changes - [onDocumentChange] will get fired.
+  ///
+  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
+  /// be constructed to `myCollection/documentId`.
+  /// [logReference] is some string for logging purpose.
+  /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
+  /// that particular stream.
+  StreamSubscription<DocumentSnapshot> listenToDocument<T>(
+    List<String> paths, {
+    required String logReference,
+    required ValueSetter<DocumentSnapshot> onDocumentChange,
+  }) {
+    final String pathToDocument = getPathToDocument(paths);
+    final StreamSubscription<DocumentSnapshot> streamSubscription =
+        _firebaseFirestore.doc(pathToDocument).snapshots().listen((documentSnapshot) {
+      _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event. Path: $pathToDocument');
+      onDocumentChange(documentSnapshot);
+    });
+
+    return streamSubscription;
+  }
+
   /// Listening for the stream of [QuerySnapshot] from Firestore.
   ///
   /// [logReference] is some string for logging purpose.
@@ -282,29 +317,6 @@ class FirestoreHelper {
             ' Type: ${docChange.type}. DocId: ${docChange.doc.id}');
         onDocumentChange(docChange);
       });
-    });
-
-    return streamSubscription;
-  }
-
-  /// Listening for the stream of [DocumentSnapshot] from Firestore.
-  /// In case of any changes - [onDocumentChange] will get fired.
-  ///
-  /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
-  /// be constructed to `myCollection/documentId`.
-  /// [logReference] is some string for logging purpose.
-  /// [onDocumentChange] is a [ValueSetter] which will return object that was changed within
-  /// that particular stream.
-  StreamSubscription<DocumentSnapshot> listenToDocument<T>(
-    List<String> paths, {
-    required String logReference,
-    required ValueSetter<DocumentSnapshot> onDocumentChange,
-  }) {
-    final String pathToDocument = getPathToDocument(paths);
-    final StreamSubscription<DocumentSnapshot> streamSubscription =
-        _firebaseFirestore.doc(pathToDocument).snapshots().listen((documentSnapshot) {
-      _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event. Path: $pathToDocument');
-      onDocumentChange(documentSnapshot);
     });
 
     return streamSubscription;

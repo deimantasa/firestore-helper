@@ -180,10 +180,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ListTile(
                       title: Text('Add Document with ID'),
                       subtitle: Text('Adds new Note with predefined ID'),
-                      onTap: () => _firestoreHelper.addDocument(
-                        [Note.kCollectionNotes],
+                      onTap: () => _firestoreHelper.addDocumentWithId(
+                        [Note.kCollectionNotes, DateTime.now().millisecondsSinceEpoch.toString()],
                         Note.update().toJson(),
-                        documentId: DateTime.now().millisecondsSinceEpoch.toString(),
                       ),
                     ),
                     Divider(height: 1),

@@ -185,6 +185,20 @@ class _NotePageState extends State<NotePage> {
               Note.update().toJson(),
             ),
           ),
+          Divider(height: 1),
+          ListTile(
+            title: Text('Add Sub Collection Document with ID'),
+            subtitle: Text('Adds new Sub Note within this note with specific ID'),
+            onTap: () => _firestoreHelper.addDocumentWithId(
+              [
+                Note.kCollectionNotes,
+                widget.noteId,
+                Note.kSubCollectionNotes,
+                DateTime.now().millisecondsSinceEpoch.toString(),
+              ],
+              Note.update().toJson(),
+            ),
+          ),
         ],
       );
     }
