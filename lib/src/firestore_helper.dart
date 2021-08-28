@@ -61,8 +61,9 @@ class FirestoreHelper {
     String? documentId,
   }) async {
     assert(
-      (documentId != null && paths.length % 2 == 0) || (documentId == null && paths.length % 2 == 1),
-      'paths must be uneven number if documentId is provided and even number if documentId is not provided',
+      paths.length % 2 == 1,
+      'paths must be uneven number since it has to point to the collection. If you want to specify documentId, provide'
+      'it as a parameter [documentId]',
     );
 
     try {
@@ -206,8 +207,8 @@ class FirestoreHelper {
   /// and what executes it.
   /// [onDocumentSnapshot] is a method with return type of an object.
   Future<T?> getDocument<T>(
-    List<String> paths,
-    String logReference, {
+    List<String> paths, {
+    required String logReference,
     required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
     final String pathToDocument = getPathToDocument(paths);

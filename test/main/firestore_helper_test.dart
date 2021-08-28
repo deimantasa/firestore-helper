@@ -85,7 +85,7 @@ void main() {
           when(mockDocumentReference.id).thenReturn('docId');
 
           await withClock(Clock.fixed(dateTime), () async {
-            final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'});
+            final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'});
 
             verify(onCollection()).called(1);
             verifyNever(onDocument());
@@ -114,7 +114,7 @@ void main() {
 
           await withClock(Clock.fixed(dateTime), () async {
             final String? documentId = await firestoreHelper.addDocument(
-              'collection',
+              ['collection'],
               {'key': 'value'},
               documentId: 'docId',
             );
@@ -142,7 +142,7 @@ void main() {
 
         when(mockFirebaseFirestore.collection('collection')).thenThrow(Exception('error'));
 
-        final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'}, documentId: 'docId');
+        final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'}, documentId: 'docId');
 
         verify(onCollection()).called(1);
         verifyNever(onDocument());
@@ -162,7 +162,7 @@ void main() {
           when(onDocumentAdd()).thenAnswer((_) async => mockDocumentReference);
           when(mockDocumentReference.id).thenReturn('docId');
 
-          final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'});
+          final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'});
 
           verify(onCollection()).called(1);
           verifyNever(onDocument());
@@ -178,7 +178,7 @@ void main() {
           when(onDocument()).thenReturn(mockDocumentReference);
           when(mockDocumentReference.id).thenReturn('docId');
 
-          final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'}, documentId: 'docId');
+          final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'}, documentId: 'docId');
 
           verify(onCollection()).called(1);
           verify(onDocument()).called(1);
@@ -192,214 +192,11 @@ void main() {
 
         when(mockFirebaseFirestore.collection('collection')).thenThrow(Exception('error'));
 
-        final String? documentId = await firestoreHelper.addDocument('collection', {'key': 'value'}, documentId: 'docId');
+        final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'}, documentId: 'docId');
 
         verify(onCollection()).called(1);
         verifyNever(onDocument());
         verifyNever(mockDocumentReference.set(any));
-        expect(documentId, isNull);
-      });
-    });
-  });
-
-  group('addSubCollectionDocument', () {
-    group('includeAdditionalFields', () {
-      group('success', () {
-        test('subCollectionDocumentId is null', () async {
-          firestoreHelper = FirestoreHelper.test(
-            includeAdditionalFields: true,
-            firebaseFirestore: mockFirebaseFirestore,
-            loggingService: mockLoggingService,
-          );
-          final DateTime dateTime = DateTime(2020);
-          final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-          final void Function() onDocument = () => mockCollectionReference.doc('documentId');
-          final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-          final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc(null);
-          final Function() onSubCollectionDocumentAdd = () => mockSubCollectionReference.add({
-                'key': 'value',
-                'updatedAt': Timestamp.fromDate(dateTime),
-                'createdAt': Timestamp.fromDate(dateTime),
-              });
-
-          when(onCollection()).thenReturn(mockCollectionReference);
-          when(onDocument()).thenReturn(mockDocumentReference);
-          when(onSubCollection()).thenReturn(mockSubCollectionReference);
-          when(onSubCollectionDocumentAdd()).thenAnswer((_) async => mockSubCollectionDocumentReference);
-          when(mockSubCollectionDocumentReference.id).thenReturn('docId');
-
-          await withClock(Clock.fixed(dateTime), () async {
-            final String? documentId = await firestoreHelper.addSubCollectionDocument(
-              collection: 'collection',
-              documentId: 'documentId',
-              subCollection: 'subCollection',
-              update: {'key': 'value'},
-            );
-
-            verify(onCollection()).called(1);
-            verify(onDocument()).called(1);
-            verify(onSubCollection()).called(1);
-            verifyNever(onSubCollectionDocument());
-            verifyNever(mockSubCollectionDocumentReference.set(any));
-            verify(mockSubCollectionReference.add({
-              'key': 'value',
-              'updatedAt': Timestamp.fromDate(dateTime),
-              'createdAt': Timestamp.fromDate(dateTime),
-            })).called(1);
-            expect(documentId, 'docId');
-          });
-        });
-        test('subCollectionDocumentId is not null', () async {
-          firestoreHelper = FirestoreHelper.test(
-            includeAdditionalFields: true,
-            firebaseFirestore: mockFirebaseFirestore,
-            loggingService: mockLoggingService,
-          );
-          final DateTime dateTime = DateTime(2020);
-          final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-          final void Function() onDocument = () => mockCollectionReference.doc('documentId');
-          final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-          final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('docId');
-
-          when(onCollection()).thenReturn(mockCollectionReference);
-          when(onDocument()).thenReturn(mockDocumentReference);
-          when(onSubCollection()).thenReturn(mockSubCollectionReference);
-          when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-          when(mockSubCollectionDocumentReference.id).thenReturn('docId');
-
-          await withClock(Clock.fixed(dateTime), () async {
-            final String? documentId = await firestoreHelper.addSubCollectionDocument(
-                collection: 'collection',
-                documentId: 'documentId',
-                subCollection: 'subCollection',
-                update: {'key': 'value'},
-                subCollectionDocumentId: 'docId');
-
-            verify(onCollection()).called(1);
-            verify(onDocument()).called(1);
-            verify(onSubCollection()).called(1);
-            verify(onSubCollectionDocument()).called(1);
-            verify(mockSubCollectionDocumentReference.set({
-              'key': 'value',
-              'updatedAt': Timestamp.fromDate(dateTime),
-              'createdAt': Timestamp.fromDate(dateTime),
-            })).called(1);
-            expect(documentId, 'docId');
-          });
-        });
-      });
-      test('failure', () async {
-        firestoreHelper = FirestoreHelper.test(
-          includeAdditionalFields: true,
-          firebaseFirestore: mockFirebaseFirestore,
-          loggingService: mockLoggingService,
-        );
-        final DateTime dateTime = DateTime(2020);
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc(any);
-        final void Function() onSubCollection = () => mockDocumentReference.collection(any);
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc(any);
-
-        when(onCollection()).thenThrow(Exception('error'));
-
-        await withClock(Clock.fixed(dateTime), () async {
-          final String? documentId = await firestoreHelper.addSubCollectionDocument(
-              collection: 'collection',
-              documentId: 'documentId',
-              subCollection: 'subCollection',
-              update: {'key': 'value'},
-              subCollectionDocumentId: 'docId');
-
-          verify(onCollection()).called(1);
-          verifyNever(onDocument());
-          verifyNever(onSubCollection());
-          verifyNever(onSubCollectionDocument());
-          verifyNever(mockDocumentReference.set({
-            'key': 'value',
-            'updatedAt': Timestamp.fromDate(dateTime),
-            'createdAt': Timestamp.fromDate(dateTime),
-          }));
-          expect(documentId, isNull);
-        });
-      });
-    });
-    group('!includeAdditionalFields', () {
-      group('success', () {
-        test('subCollectionDocumentId is null', () async {
-          final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-          final void Function() onDocument = () => mockCollectionReference.doc('documentId');
-          final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-          final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc(null);
-          final Function() onSubCollectionDocumentAdd = () => mockSubCollectionReference.add({'key': 'value'});
-
-          when(onCollection()).thenReturn(mockCollectionReference);
-          when(onDocument()).thenReturn(mockDocumentReference);
-          when(onSubCollection()).thenReturn(mockSubCollectionReference);
-          when(onSubCollectionDocumentAdd()).thenAnswer((_) async => mockSubCollectionDocumentReference);
-          when(mockSubCollectionDocumentReference.id).thenReturn('docId');
-
-          final String? documentId = await firestoreHelper.addSubCollectionDocument(
-            collection: 'collection',
-            documentId: 'documentId',
-            subCollection: 'subCollection',
-            update: {'key': 'value'},
-          );
-
-          verify(onCollection()).called(1);
-          verify(onDocument()).called(1);
-          verify(onSubCollection()).called(1);
-          verifyNever(onSubCollectionDocument());
-          verifyNever(mockSubCollectionDocumentReference.set(any));
-          verify(mockSubCollectionReference.add({'key': 'value'})).called(1);
-          expect(documentId, 'docId');
-        });
-        test('subCollectionDocumentId is not null', () async {
-          final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-          final void Function() onDocument = () => mockCollectionReference.doc('documentId');
-          final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-          final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('docId');
-
-          when(onCollection()).thenReturn(mockCollectionReference);
-          when(onDocument()).thenReturn(mockDocumentReference);
-          when(onSubCollection()).thenReturn(mockSubCollectionReference);
-          when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-          when(mockSubCollectionDocumentReference.id).thenReturn('docId');
-
-          final String? documentId = await firestoreHelper.addSubCollectionDocument(
-              collection: 'collection',
-              documentId: 'documentId',
-              subCollection: 'subCollection',
-              update: {'key': 'value'},
-              subCollectionDocumentId: 'docId');
-
-          verify(onCollection()).called(1);
-          verify(onDocument()).called(1);
-          verify(onSubCollection()).called(1);
-          verify(onSubCollectionDocument()).called(1);
-          verify(mockSubCollectionDocumentReference.set({'key': 'value'})).called(1);
-          expect(documentId, 'docId');
-        });
-      });
-      test('failure', () async {
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc(any);
-        final void Function() onSubCollection = () => mockDocumentReference.collection(any);
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc(any);
-
-        when(onCollection()).thenThrow(Exception('error'));
-
-        final String? documentId = await firestoreHelper.addSubCollectionDocument(
-            collection: 'collection',
-            documentId: 'documentId',
-            subCollection: 'subCollection',
-            update: {'key': 'value'},
-            subCollectionDocumentId: 'docId');
-
-        verify(onCollection()).called(1);
-        verifyNever(onDocument());
-        verifyNever(onSubCollection());
-        verifyNever(onSubCollectionDocument());
-        verifyNever(mockDocumentReference.set({'key': 'value'}));
         expect(documentId, isNull);
       });
     });
@@ -421,7 +218,7 @@ void main() {
         when(onDocument()).thenReturn(mockDocumentReference);
 
         await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateDocument('collection', 'docId', {'key': 'value'});
+          final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
           verify(onCollection()).called(1);
           verify(onDocument()).called(1);
@@ -445,7 +242,7 @@ void main() {
         when(onCollection()).thenThrow(Exception('error'));
 
         await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateDocument('collection', 'docId', {'key': 'value'});
+          final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
           verify(onCollection()).called(1);
           verifyNever(onDocument());
@@ -462,7 +259,7 @@ void main() {
         when(onCollection()).thenReturn(mockCollectionReference);
         when(onDocument()).thenReturn(mockDocumentReference);
 
-        final bool isSuccess = await firestoreHelper.updateDocument('collection', 'docId', {'key': 'value'});
+        final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
         verify(onCollection()).called(1);
         verify(onDocument()).called(1);
@@ -475,135 +272,11 @@ void main() {
 
         when(onCollection()).thenThrow(Exception('error'));
 
-        final bool isSuccess = await firestoreHelper.updateDocument('collection', 'docId', {'key': 'value'});
+        final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
         verify(onCollection()).called(1);
         verifyNever(onDocument());
         verifyNever(mockDocumentReference.update(any));
-        expect(isSuccess, isFalse);
-      });
-    });
-  });
-
-  group('updateSubCollectionsDocument', () {
-    group('includeAdditionalFields', () {
-      test('success', () async {
-        firestoreHelper = FirestoreHelper.test(
-          includeAdditionalFields: true,
-          firebaseFirestore: mockFirebaseFirestore,
-          loggingService: mockLoggingService,
-        );
-        final DateTime dateTime = DateTime(2020);
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc('docId');
-        final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-        when(onCollection()).thenReturn(mockCollectionReference);
-        when(onDocument()).thenReturn(mockDocumentReference);
-        when(onSubCollection()).thenReturn(mockSubCollectionReference);
-        when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-
-        await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateSubCollectionsDocument(
-            collection: 'collection',
-            documentId: 'docId',
-            subCollection: 'subCollection',
-            subCollectionDocumentId: 'subCollectionDocId',
-            update: {'key': 'value'},
-          );
-
-          verify(onCollection()).called(1);
-          verify(onDocument()).called(1);
-          verify(onSubCollection()).called(1);
-          verify(onSubCollectionDocument()).called(1);
-          verify(mockSubCollectionDocumentReference.update({
-            'key': 'value',
-            'updatedAt': Timestamp.fromDate(dateTime),
-          })).called(1);
-          expect(isSuccess, isTrue);
-        });
-      });
-      test('failure', () async {
-        firestoreHelper = FirestoreHelper.test(
-          includeAdditionalFields: true,
-          firebaseFirestore: mockFirebaseFirestore,
-          loggingService: mockLoggingService,
-        );
-        final DateTime dateTime = DateTime(2020);
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc('docId');
-        final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-        when(onCollection()).thenThrow(Exception('error'));
-
-        await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateSubCollectionsDocument(
-            collection: 'collection',
-            documentId: 'docId',
-            subCollection: 'subCollection',
-            subCollectionDocumentId: 'subCollectionDocId',
-            update: {'key': 'value'},
-          );
-
-          verify(onCollection()).called(1);
-          verifyNever(onDocument());
-          verifyNever(onSubCollection());
-          verifyNever(onSubCollectionDocument());
-          verifyNever(mockSubCollectionDocumentReference.update(any));
-          expect(isSuccess, isFalse);
-        });
-      });
-    });
-    group('!includeAdditionalFields', () {
-      test('success', () async {
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc('docId');
-        final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-        when(onCollection()).thenReturn(mockCollectionReference);
-        when(onDocument()).thenReturn(mockDocumentReference);
-        when(onSubCollection()).thenReturn(mockSubCollectionReference);
-        when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-
-        final bool isSuccess = await firestoreHelper.updateSubCollectionsDocument(
-          collection: 'collection',
-          documentId: 'docId',
-          subCollection: 'subCollection',
-          subCollectionDocumentId: 'subCollectionDocId',
-          update: {'key': 'value'},
-        );
-
-        verify(onCollection()).called(1);
-        verify(onDocument()).called(1);
-        verify(onSubCollection()).called(1);
-        verify(onSubCollectionDocument()).called(1);
-        verify(mockSubCollectionDocumentReference.update({'key': 'value'})).called(1);
-        expect(isSuccess, isTrue);
-      });
-      test('failure', () async {
-        final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-        final void Function() onDocument = () => mockCollectionReference.doc('docId');
-        final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-        final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-        when(onCollection()).thenThrow(Exception('error'));
-
-        final bool isSuccess = await firestoreHelper.updateSubCollectionsDocument(
-          collection: 'collection',
-          documentId: 'docId',
-          subCollection: 'subCollection',
-          subCollectionDocumentId: 'subCollectionDocId',
-          update: {'key': 'value'},
-        );
-
-        verify(onCollection()).called(1);
-        verifyNever(onDocument());
-        verifyNever(onSubCollection());
-        verifyNever(onSubCollectionDocument());
-        verifyNever(mockSubCollectionDocumentReference.update(any));
         expect(isSuccess, isFalse);
       });
     });
@@ -617,7 +290,7 @@ void main() {
       when(onCollection()).thenReturn(mockCollectionReference);
       when(onDocument()).thenReturn(mockDocumentReference);
 
-      final bool isSuccess = await firestoreHelper.deleteDocument('collection', 'docId');
+      final bool isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
 
       verify(onCollection()).called(1);
       verify(onDocument()).called(1);
@@ -630,7 +303,7 @@ void main() {
 
       when(onCollection()).thenThrow(Exception('error'));
 
-      final bool isSuccess = await firestoreHelper.deleteDocument('collection', 'docId');
+      final bool isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
 
       verify(onCollection()).called(1);
       verifyNever(onDocument());
@@ -663,57 +336,7 @@ void main() {
     });
   });
 
-  group('deleteSubCollectionsDocument', () {
-    test('success', () async {
-      final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-      final void Function() onDocument = () => mockCollectionReference.doc('docId');
-      final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-      final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-      when(onCollection()).thenReturn(mockCollectionReference);
-      when(onDocument()).thenReturn(mockDocumentReference);
-      when(onSubCollection()).thenReturn(mockSubCollectionReference);
-      when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-
-      final bool isSuccess = await firestoreHelper.deleteSubCollectionDocument(
-        collection: 'collection',
-        documentId: 'docId',
-        subCollection: 'subCollection',
-        subCollectionDocumentId: 'subCollectionDocId',
-      );
-
-      verify(onCollection()).called(1);
-      verify(onDocument()).called(1);
-      verify(onSubCollection()).called(1);
-      verify(onSubCollectionDocument()).called(1);
-      verify(mockSubCollectionDocumentReference.delete()).called(1);
-      expect(isSuccess, isTrue);
-    });
-    test('failure', () async {
-      final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-      final void Function() onDocument = () => mockCollectionReference.doc('docId');
-      final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-      final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-      when(onCollection()).thenThrow(Exception('error'));
-
-      final bool isSuccess = await firestoreHelper.deleteSubCollectionDocument(
-        collection: 'collection',
-        documentId: 'docId',
-        subCollection: 'subCollection',
-        subCollectionDocumentId: 'subCollectionDocId',
-      );
-
-      verify(onCollection()).called(1);
-      verifyNever(onDocument());
-      verifyNever(onSubCollection());
-      verifyNever(onSubCollectionDocument());
-      verifyNever(mockSubCollectionDocumentReference.delete());
-      expect(isSuccess, isFalse);
-    });
-  });
-
-  group('getElements', () {
+  group('getDocuments', () {
     group('success', () {
       test('lastDocumentSnapshot is null', () async {
         final Function() onQueryGet = () => mockQuery.get();
@@ -773,7 +396,7 @@ void main() {
     });
   });
 
-  group('getElement', () {
+  group('getDocument', () {
     test('success', () async {
       final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
       final void Function() onDocument = () => mockCollectionReference.doc('docId');
@@ -784,9 +407,8 @@ void main() {
       when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
 
       final String? element = await firestoreHelper.getDocument<String>(
-        'collection',
-        'docId',
-        '',
+        ['collection', 'docId'],
+        logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
       );
 
@@ -801,9 +423,8 @@ void main() {
       when(onCollection()).thenThrow(Exception('error'));
 
       final String? element = await firestoreHelper.getDocument<String>(
-        'collection',
-        'docId',
-        '',
+        ['collection', 'docId'],
+        logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
       );
 
@@ -814,7 +435,7 @@ void main() {
     });
   });
 
-  group('areMoreElementsAvailable', () {
+  group('areMoreDocumentsAvailable', () {
     test('true', () async {
       final MockQuery otherMockQuery = MockQuery();
       final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
@@ -875,7 +496,7 @@ void main() {
     });
   });
 
-  group('listenToElementsStream', () {
+  group('listenToDocumentsStream', () {
     test('!isMoreQuery', () async {
       final StreamController<QuerySnapshot> streamController = StreamController()..add(mockQuerySnapshot);
       final MockFunction mockFunction = MockFunction();
@@ -945,42 +566,7 @@ void main() {
     when(mockDocumentReference.snapshots()).thenAnswer((_) => streamController.stream);
 
     final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocument(
-      'collection',
-      'documentId',
-      '',
-      onDocumentChange: onDocumentChange,
-    ));
-
-    verify(mockFunction(mockDocumentSnapshot)).called(1);
-    expect(streamSubscription, isNotNull);
-
-    streamController.close();
-  });
-
-  test('listenToSubCollectionDocument', () async {
-    final StreamController<DocumentSnapshot<Map<String, dynamic>>> streamController = StreamController()
-      ..add(mockDocumentSnapshot);
-    final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
-    final void Function() onDocument = () => mockCollectionReference.doc('docId');
-    final void Function() onSubCollection = () => mockDocumentReference.collection('subCollection');
-    final void Function() onSubCollectionDocument = () => mockSubCollectionReference.doc('subCollectionDocId');
-
-    final MockFunction mockFunction = MockFunction();
-    final void Function(DocumentSnapshot) onDocumentChange = (documentSnapshot) {
-      mockFunction.call(documentSnapshot);
-    };
-
-    when(onCollection()).thenReturn(mockCollectionReference);
-    when(onDocument()).thenReturn(mockDocumentReference);
-    when(onSubCollection()).thenReturn(mockSubCollectionReference);
-    when(onSubCollectionDocument()).thenReturn(mockSubCollectionDocumentReference);
-    when(mockSubCollectionDocumentReference.snapshots()).thenAnswer((_) => streamController.stream);
-
-    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToSubCollectionDocument(
-      collection: 'collection',
-      documentId: 'docId',
-      subCollection: 'subCollection',
-      subCollectionDocumentId: 'subCollectionDocId',
+      ['collection', 'documentId'],
       logReference: '',
       onDocumentChange: onDocumentChange,
     ));

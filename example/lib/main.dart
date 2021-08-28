@@ -177,6 +177,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                     Divider(height: 1),
+                    ListTile(
+                      title: Text('Add Document with ID'),
+                      subtitle: Text('Adds new Note with predefined ID'),
+                      onTap: () => _firestoreHelper.addDocument(
+                        [Note.kCollectionNotes],
+                        Note.update().toJson(),
+                        documentId: DateTime.now().millisecondsSinceEpoch.toString(),
+                      ),
+                    ),
+                    Divider(height: 1),
                     if (_notes.isNotEmpty) ...[
                       ListTile(
                         title: Text('Delete Documents by query'),
@@ -206,11 +216,16 @@ class _MyHomePageState extends State<MyHomePage> {
                         subtitle: Text('Shows last Note'),
                         onTap: () async {
                           final Note? note = await _firestoreHelper.getDocument(
-                              [Note.kCollectionNotes, _notes.first.id], '_MyHomePageState._buildBody.getElement',
-                              onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot));
+                            [Note.kCollectionNotes, _notes.first.id],
+                            logReference: '_MyHomePageState._buildBody.getElement',
+                            onDocumentSnapshot: (documentSnapshot) => Note.fromFirestore(documentSnapshot),
+                          );
 
                           if (note != null) {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => NotePage(noteId: note.id)));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => NotePage(noteId: note.id)),
+                            );
                           }
                         },
                       ),
