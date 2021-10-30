@@ -190,7 +190,7 @@ class FirestoreHelper {
     try {
       _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
       final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
-      final T element = onDocumentSnapshot(documentSnapshot)!;
+      final T? element = onDocumentSnapshot(documentSnapshot);
 
       return element;
     } catch (e, s) {
@@ -214,7 +214,7 @@ class FirestoreHelper {
   Future<List<T>?> getDocuments<T>({
     required Query query,
     required String logReference,
-    required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
     DocumentSnapshot? lastDocumentSnapshot,
   }) async {
     final bool isMoreQuery = lastDocumentSnapshot != null;
@@ -223,14 +223,10 @@ class FirestoreHelper {
     _loggingService.log('FirestoreHelper.getDocuments.$logReference: More: $isMoreQuery');
     try {
       final QuerySnapshot querySnapshot = await currentQuery.get();
-      final List<T> elements = querySnapshot.docs.map((e) {
-        final T element = onDocumentSnapshot(e);
-
-        return element;
-      }).toList();
+      final List<T?> elements = querySnapshot.docs.map((e) => onDocumentSnapshot(e)).toList();
 
       _loggingService.log('FirestoreHelper.getDocuments.$logReference: Total: ${elements.length}');
-      return elements;
+      return List<T>.from(elements.where((element) => element != null));
     } catch (e, s) {
       _loggingService.log(
         'FirestoreTransactionsService.getDocuments: Exception: $e. StackTrace: $s',
@@ -249,7 +245,7 @@ class FirestoreHelper {
   Future<bool> areMoreDocumentsAvailable<T>({
     required Query query,
     required DocumentSnapshot lastDocumentSnapshot,
-    required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
     _loggingService.log('FirestoreHelper.areMoreDocumentsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
 

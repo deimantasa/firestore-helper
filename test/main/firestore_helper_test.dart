@@ -396,6 +396,24 @@ void main() {
 
   group('getDocuments', () {
     group('success', () {
+      test('some docs are null', () async {
+        final Function() onQueryGet = () => mockQuery.get();
+
+        when(onQueryGet()).thenAnswer((_) async => mockQuerySnapshot);
+        when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+
+        final List<String>? elements = await firestoreHelper.getDocuments<String>(
+          query: mockQuery,
+          logReference: '',
+          // hacky test, can't find proper way to insert null within the list
+          onDocumentSnapshot: (docSnapshot) => null,
+        );
+
+        verifyNever(mockQuery.startAfterDocument(any));
+        verify(onQueryGet()).called(1);
+        expect(elements!.length, 0);
+      });
+
       test('lastDocumentSnapshot is null', () async {
         final Function() onQueryGet = () => mockQuery.get();
 
@@ -434,6 +452,28 @@ void main() {
         expect(elements!.length, 1);
         expect(elements.first, 'itemId');
       });
+
+      test('lastDocumentSnapshot is not null', () async {
+        final MockQuery otherMockQuery = MockQuery();
+        final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
+
+        when(onStartAfterDocument()).thenReturn(otherMockQuery);
+        when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+        when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
+
+        final List<String>? elements = await firestoreHelper.getDocuments<String>(
+          query: mockQuery,
+          logReference: '',
+          onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
+          lastDocumentSnapshot: mockDocumentSnapshot,
+        );
+
+        verify(onStartAfterDocument()).called(1);
+        verify(otherMockQuery.get()).called(1);
+        expect(elements!.length, 2);
+        expect(elements.first, 'itemId');
+        expect(elements.last, 'itemId');
+      });
     });
 
     test('failed', () async {
@@ -457,7 +497,7 @@ void main() {
   });
 
   group('getDocument', () {
-    test('success', () async {
+    test('success non null', () async {
       final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
 
       when(onDocument()).thenReturn(mockDocumentReference);
@@ -473,6 +513,24 @@ void main() {
       verify(onDocument()).called(1);
       verify(mockDocumentReference.get()).called(1);
       expect(element, 'returnedDocIt');
+    });
+
+    test('success null', () async {
+      final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
+
+      when(onDocument()).thenReturn(mockDocumentReference);
+      when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
+      when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+
+      final String? element = await firestoreHelper.getDocument<String>(
+        ['collection', 'docId'],
+        logReference: '',
+        onDocumentSnapshot: (docSnapshot) => null,
+      );
+
+      verify(onDocument()).called(1);
+      verify(mockDocumentReference.get()).called(1);
+      expect(element, null);
     });
 
     test('failure', () async {
@@ -509,6 +567,27 @@ void main() {
       );
 
       expect(result, isTrue);
+    });
+
+    test('false null', () async {
+      final MockQuery otherMockQuery = MockQuery();
+      final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
+
+      when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+
+      when(mockQuery.limit(1)).thenReturn(mockQuery);
+      when(onStartAfterDocument()).thenReturn(otherMockQuery);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+      when(mockDocumentSnapshot.id).thenReturn('docId');
+
+      final bool result = await firestoreHelper.areMoreDocumentsAvailable(
+        query: mockQuery,
+        lastDocumentSnapshot: mockDocumentSnapshot,
+        onDocumentSnapshot: (_) => null,
+      );
+
+      expect(result, isFalse);
     });
 
     group('false', () {
