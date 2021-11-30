@@ -503,6 +503,7 @@ void main() {
       when(onDocument()).thenReturn(mockDocumentReference);
       when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+      when(mockDocumentSnapshot.exists).thenReturn(true);
 
       final String? element = await firestoreHelper.getDocument<String>(
         ['collection', 'docId'],
@@ -520,6 +521,26 @@ void main() {
 
       when(onDocument()).thenReturn(mockDocumentReference);
       when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
+      when(mockDocumentSnapshot.exists).thenReturn(true);
+      when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+
+      final String? element = await firestoreHelper.getDocument<String>(
+        ['collection', 'docId'],
+        logReference: '',
+        onDocumentSnapshot: (docSnapshot) => null,
+      );
+
+      verify(onDocument()).called(1);
+      verify(mockDocumentReference.get()).called(1);
+      expect(element, null);
+    });
+
+    test('success document does not exist', () async {
+      final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
+
+      when(onDocument()).thenReturn(mockDocumentReference);
+      when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
+      when(mockDocumentSnapshot.exists).thenReturn(false);
       when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
 
       final String? element = await firestoreHelper.getDocument<String>(

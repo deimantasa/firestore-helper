@@ -190,6 +190,14 @@ class FirestoreHelper {
     try {
       _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
       final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
+      if (!documentSnapshot.exists) {
+        _loggingService.log(
+          'FirestoreHelper.getDocument.$logReference: Path: $pathToDocument. Document does not exist',
+          logType: LogType.warning,
+        );
+        return null;
+      }
+
       final T? element = onDocumentSnapshot(documentSnapshot);
 
       return element;
