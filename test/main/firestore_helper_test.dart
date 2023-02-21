@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:clock/clock.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -24,18 +25,20 @@ class MockQueryDocumentSnapshot extends Mock implements QueryDocumentSnapshot {
 }
 
 void main() {
-  final MockFirebaseFirestore mockFirebaseFirestore = MockFirebaseFirestore();
-  final MockLoggingService mockLoggingService = MockLoggingService();
-  final MockCollectionReference<Map<String, dynamic>> mockCollectionReference = MockCollectionReference();
-  final MockDocumentReference<Map<String, dynamic>> mockDocumentReference = MockDocumentReference();
-  final MockCollectionReference<Map<String, dynamic>> mockSubCollectionReference = MockCollectionReference();
-  final MockDocumentReference<Map<String, dynamic>> mockSubCollectionDocumentReference = MockDocumentReference();
-  final MockQuery mockQuery = MockQuery();
-  final MockQuerySnapshot mockQuerySnapshot = MockQuerySnapshot();
-  final MockDocumentSnapshot<Map<String, dynamic>> mockDocumentSnapshot = MockDocumentSnapshot();
-  final MockQueryDocumentSnapshot mockQueryDocumentSnapshot = MockQueryDocumentSnapshot(mockDocumentSnapshot);
-  final MockStreamSubscription mockStreamSubscription = MockStreamSubscription();
-  final MockDocumentChange mockDocumentChange = MockDocumentChange();
+  final mockFirebaseFirestore = MockFirebaseFirestore();
+  final mockLoggingService = MockLoggingService();
+  final mockCollectionReference = MockCollectionReference<Map<String, dynamic>>();
+  final mockDocumentReference = MockDocumentReference<Map<String, dynamic>>();
+  final mockSubCollectionReference = MockCollectionReference<Map<String, dynamic>>();
+  final mockSubCollectionDocumentReference = MockDocumentReference<Map<String, dynamic>>();
+  final mockAggregateQuery = MockAggregateQuery();
+  final mockAggregateQuerySnapshot = MockAggregateQuerySnapshot();
+  final mockQuery = MockQuery();
+  final mockQuerySnapshot = MockQuerySnapshot();
+  final mockDocumentSnapshot = MockDocumentSnapshot<Map<String, dynamic>>();
+  final mockQueryDocumentSnapshot = MockQueryDocumentSnapshot(mockDocumentSnapshot);
+  final mockStreamSubscription = MockStreamSubscription();
+  final mockDocumentChange = MockDocumentChange();
 
   late FirestoreHelper firestoreHelper;
 
@@ -53,6 +56,8 @@ void main() {
     reset(mockDocumentReference);
     reset(mockSubCollectionReference);
     reset(mockSubCollectionDocumentReference);
+    reset(mockAggregateQuery);
+    reset(mockAggregateQuerySnapshot);
     reset(mockQuery);
     reset(mockQuerySnapshot);
     reset(mockQueryDocumentSnapshot);
@@ -69,7 +74,7 @@ void main() {
           firebaseFirestore: mockFirebaseFirestore,
           loggingService: mockLoggingService,
         );
-        final DateTime dateTime = DateTime(2020);
+        final dateTime = DateTime(2020);
         final void Function() onCollection = () => mockFirebaseFirestore.collection('collection');
         final Function() onDocumentAdd = () => mockCollectionReference.add({
               'key': 'value',
@@ -135,7 +140,7 @@ void main() {
         when(onDocumentAdd()).thenAnswer((_) async => mockDocumentReference);
         when(mockDocumentReference.id).thenReturn('docId');
 
-        final String? documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'});
+        final documentId = await firestoreHelper.addDocument(['collection'], {'key': 'value'});
 
         verify(onCollection()).called(1);
         verifyNever(onDocument());
@@ -182,7 +187,7 @@ void main() {
           firebaseFirestore: mockFirebaseFirestore,
           loggingService: mockLoggingService,
         );
-        final DateTime dateTime = DateTime(2020);
+        final dateTime = DateTime(2020);
         final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
 
         when(onDocument()).thenReturn(mockDocumentReference);
@@ -241,7 +246,7 @@ void main() {
         when(onDocument()).thenReturn(mockDocumentReference);
         when(mockDocumentReference.id).thenReturn('docId');
 
-        final String? documentId = await firestoreHelper.addDocumentWithId(['collection', 'docId'], {'key': 'value'});
+        final documentId = await firestoreHelper.addDocumentWithId(['collection', 'docId'], {'key': 'value'});
 
         verify(onDocument()).called(1);
         verify(mockDocumentReference.set({'key': 'value'})).called(1);
@@ -270,7 +275,7 @@ void main() {
           );
           when(mockFirebaseFirestore.doc(any)).thenThrow(Exception('error'));
 
-          final String? documentId = await firestoreHelper.addDocumentWithId(['collection', 'docId'], {'key': 'value'});
+          final documentId = await firestoreHelper.addDocumentWithId(['collection', 'docId'], {'key': 'value'});
 
           verifyNever(mockDocumentReference.set(any));
           expect(documentId, isNull);
@@ -287,13 +292,13 @@ void main() {
           firebaseFirestore: mockFirebaseFirestore,
           loggingService: mockLoggingService,
         );
-        final DateTime dateTime = DateTime(2020);
+        final dateTime = DateTime(2020);
         final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
 
         when(onDocument()).thenReturn(mockDocumentReference);
 
         await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
+          final isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
           verify(onDocument()).called(1);
           verify(mockDocumentReference.update({
@@ -310,11 +315,11 @@ void main() {
           firebaseFirestore: mockFirebaseFirestore,
           loggingService: mockLoggingService,
         );
-        final DateTime dateTime = DateTime(2020);
+        final dateTime = DateTime(2020);
         when(mockFirebaseFirestore.doc(any)).thenThrow(Exception('error'));
 
         await withClock(Clock.fixed(dateTime), () async {
-          final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
+          final isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
           verifyNever(mockDocumentReference.update(any));
           expect(isSuccess, isFalse);
@@ -328,7 +333,7 @@ void main() {
 
         when(onDocument()).thenReturn(mockDocumentReference);
 
-        final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
+        final isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
         verify(onDocument()).called(1);
         verify(mockDocumentReference.update({'key': 'value'})).called(1);
@@ -338,7 +343,7 @@ void main() {
       test('failure', () async {
         when(mockFirebaseFirestore.doc(any)).thenThrow(Exception('error'));
 
-        final bool isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
+        final isSuccess = await firestoreHelper.updateDocument(['collection', 'docId'], {'key': 'value'});
 
         verifyNever(mockDocumentReference.update(any));
         expect(isSuccess, isFalse);
@@ -352,7 +357,7 @@ void main() {
 
       when(onDocument()).thenReturn(mockDocumentReference);
 
-      final bool isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
+      final isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
 
       verify(onDocument()).called(1);
       verify(mockDocumentReference.delete()).called(1);
@@ -362,7 +367,7 @@ void main() {
     test('failure', () async {
       when(mockFirebaseFirestore.doc(any)).thenThrow(Exception('error'));
 
-      final bool isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
+      final isSuccess = await firestoreHelper.deleteDocument(['collection', 'docId']);
 
       verifyNever(mockDocumentReference.delete());
       expect(isSuccess, isFalse);
@@ -376,7 +381,7 @@ void main() {
       when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
       when(mockQueryDocumentSnapshot.reference).thenReturn(mockDocumentReference);
 
-      final bool isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
+      final isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
 
       verify(mockDocumentReference.delete()).called(2);
       expect(isSuccess, isTrue);
@@ -387,7 +392,7 @@ void main() {
       when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
       when(mockQueryDocumentSnapshot.reference).thenReturn(mockDocumentReference);
 
-      final bool isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
+      final isSuccess = await firestoreHelper.deleteDocumentsByQuery(mockQuery);
 
       verifyNever(mockDocumentReference.delete());
       expect(isSuccess, isFalse);
@@ -396,13 +401,33 @@ void main() {
 
   group('getDocuments', () {
     group('success', () {
-      test('lastDocumentSnapshot is null', () async {
+      test('some docs are null', () async {
         final Function() onQueryGet = () => mockQuery.get();
 
+        when(mockQuery.parameters).thenReturn({});
         when(onQueryGet()).thenAnswer((_) async => mockQuerySnapshot);
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
 
-        final List<String>? elements = await firestoreHelper.getDocuments<String>(
+        final documents = await firestoreHelper.getDocuments<String>(
+          query: mockQuery,
+          logReference: '',
+          // hacky test, can't find proper way to insert null within the list
+          onDocumentSnapshot: (docSnapshot) => null,
+        );
+
+        verifyNever(mockQuery.startAfterDocument(any));
+        verify(onQueryGet()).called(1);
+        expect(documents!.length, 0);
+      });
+
+      test('lastDocumentSnapshot is null', () async {
+        final Function() onQueryGet = () => mockQuery.get();
+
+        when(mockQuery.parameters).thenReturn({});
+        when(onQueryGet()).thenAnswer((_) async => mockQuerySnapshot);
+        when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+
+        final documents = await firestoreHelper.getDocuments<String>(
           query: mockQuery,
           logReference: '',
           onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -410,19 +435,21 @@ void main() {
 
         verifyNever(mockQuery.startAfterDocument(any));
         verify(onQueryGet()).called(1);
-        expect(elements!.length, 1);
-        expect(elements.first, 'itemId');
+        expect(documents!.length, 1);
+        expect(documents.first, 'itemId');
       });
 
       test('lastDocumentSnapshot is not null', () async {
-        final MockQuery otherMockQuery = MockQuery();
+        final otherMockQuery = MockQuery();
+        when(otherMockQuery.parameters).thenReturn({});
         final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
 
+        when(mockQuery.parameters).thenReturn({});
         when(onStartAfterDocument()).thenReturn(otherMockQuery);
         when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
 
-        final List<String>? elements = await firestoreHelper.getDocuments<String>(
+        final documents = await firestoreHelper.getDocuments<String>(
           query: mockQuery,
           logReference: '',
           onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -431,19 +458,44 @@ void main() {
 
         verify(onStartAfterDocument()).called(1);
         verify(otherMockQuery.get()).called(1);
-        expect(elements!.length, 1);
-        expect(elements.first, 'itemId');
+        expect(documents!.length, 1);
+        expect(documents.first, 'itemId');
+      });
+
+      test('lastDocumentSnapshot is not null', () async {
+        final  otherMockQuery = MockQuery();
+        when(otherMockQuery.parameters).thenReturn({});
+        final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
+
+        when(mockQuery.parameters).thenReturn({});
+        when(onStartAfterDocument()).thenReturn(otherMockQuery);
+        when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+        when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot, mockQueryDocumentSnapshot]);
+
+        final documents = await firestoreHelper.getDocuments<String>(
+          query: mockQuery,
+          logReference: '',
+          onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
+          lastDocumentSnapshot: mockDocumentSnapshot,
+        );
+
+        verify(onStartAfterDocument()).called(1);
+        verify(otherMockQuery.get()).called(1);
+        expect(documents!.length, 2);
+        expect(documents.first, 'itemId');
+        expect(documents.last, 'itemId');
       });
     });
 
     test('failed', () async {
+      when(mockQuery.parameters).thenReturn({});
       final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
       final Function() onQueryGet = () => mockQuery.get();
 
       when(onStartAfterDocument()).thenReturn(mockQuery);
       when(onQueryGet()).thenThrow(Exception('error'));
 
-      final List<String>? elements = await firestoreHelper.getDocuments<String>(
+      final documents = await firestoreHelper.getDocuments<String>(
         query: mockQuery,
         logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -452,19 +504,20 @@ void main() {
 
       verify(onStartAfterDocument()).called(1);
       verify(onQueryGet()).called(1);
-      expect(elements, isNull);
+      expect(documents, isNull);
     });
   });
 
   group('getDocument', () {
-    test('success', () async {
+    test('success non null', () async {
       final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
 
       when(onDocument()).thenReturn(mockDocumentReference);
       when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+      when(mockDocumentSnapshot.exists).thenReturn(true);
 
-      final String? element = await firestoreHelper.getDocument<String>(
+      final  documents = await firestoreHelper.getDocument<String>(
         ['collection', 'docId'],
         logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
@@ -472,37 +525,77 @@ void main() {
 
       verify(onDocument()).called(1);
       verify(mockDocumentReference.get()).called(1);
-      expect(element, 'returnedDocIt');
+      expect(documents, 'returnedDocIt');
+    });
+
+    test('success null', () async {
+      final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
+
+      when(onDocument()).thenReturn(mockDocumentReference);
+      when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
+      when(mockDocumentSnapshot.exists).thenReturn(true);
+      when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+
+      final documents = await firestoreHelper.getDocument<String>(
+        ['collection', 'docId'],
+        logReference: '',
+        onDocumentSnapshot: (docSnapshot) => null,
+      );
+
+      verify(onDocument()).called(1);
+      verify(mockDocumentReference.get()).called(1);
+      expect(documents, null);
+    });
+
+    test('success document does not exist', () async {
+      final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/docId');
+
+      when(onDocument()).thenReturn(mockDocumentReference);
+      when(mockDocumentReference.get()).thenAnswer((_) async => mockDocumentSnapshot);
+      when(mockDocumentSnapshot.exists).thenReturn(false);
+      when(mockDocumentSnapshot.id).thenReturn('returnedDocIt');
+
+      final documents = await firestoreHelper.getDocument<String>(
+        ['collection', 'docId'],
+        logReference: '',
+        onDocumentSnapshot: (docSnapshot) => null,
+      );
+
+      verify(onDocument()).called(1);
+      verify(mockDocumentReference.get()).called(1);
+      expect(documents, null);
     });
 
     test('failure', () async {
       when(mockFirebaseFirestore.doc(any)).thenThrow(Exception('error'));
 
-      final String? element = await firestoreHelper.getDocument<String>(
+      final  documents = await firestoreHelper.getDocument<String>(
         ['collection', 'docId'],
         logReference: '',
         onDocumentSnapshot: (docSnapshot) => docSnapshot.id,
       );
 
       verifyNever(mockDocumentReference.get());
-      expect(element, isNull);
+      expect(documents, isNull);
     });
   });
 
   group('areMoreDocumentsAvailable', () {
     test('true', () async {
-      final MockQuery otherMockQuery = MockQuery();
+      final otherMockQuery = MockQuery();
+      when(otherMockQuery.parameters).thenReturn({});
       final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
 
       when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
       when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
 
+      when(mockQuery.parameters).thenReturn({});
       when(mockQuery.limit(1)).thenReturn(mockQuery);
       when(onStartAfterDocument()).thenReturn(otherMockQuery);
       when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
       when(mockDocumentSnapshot.id).thenReturn('docId');
 
-      final bool result = await firestoreHelper.areMoreDocumentsAvailable(
+      final result = await firestoreHelper.areMoreDocumentsAvailable(
         query: mockQuery,
         lastDocumentSnapshot: mockDocumentSnapshot,
         onDocumentSnapshot: (_) => '',
@@ -511,19 +604,44 @@ void main() {
       expect(result, isTrue);
     });
 
+    test('false null', () async {
+      final otherMockQuery = MockQuery();
+      when(otherMockQuery.parameters).thenReturn({});
+      final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
+
+      when(otherMockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+
+      when(mockQuery.parameters).thenReturn({});
+      when(mockQuery.limit(1)).thenReturn(mockQuery);
+      when(onStartAfterDocument()).thenReturn(otherMockQuery);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+      when(mockDocumentSnapshot.id).thenReturn('docId');
+
+      final  result = await firestoreHelper.areMoreDocumentsAvailable(
+        query: mockQuery,
+        lastDocumentSnapshot: mockDocumentSnapshot,
+        onDocumentSnapshot: (_) => null,
+      );
+
+      expect(result, isFalse);
+    });
+
     group('false', () {
       test('list is null', () async {
-        final MockQuery otherMockQuery = MockQuery();
+        final otherMockQuery = MockQuery();
+        when(otherMockQuery.parameters).thenReturn({});
         final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
 
         when(otherMockQuery.get()).thenThrow(Exception('error'));
 
+        when(mockQuery.parameters).thenReturn({});
         when(mockQuery.limit(1)).thenReturn(mockQuery);
         when(onStartAfterDocument()).thenReturn(otherMockQuery);
         when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
         when(mockDocumentSnapshot.id).thenReturn('docId');
 
-        final bool result = await firestoreHelper.areMoreDocumentsAvailable(
+        final  result = await firestoreHelper.areMoreDocumentsAvailable(
           query: mockQuery,
           lastDocumentSnapshot: mockDocumentSnapshot,
           onDocumentSnapshot: (_) => '',
@@ -533,15 +651,17 @@ void main() {
       });
 
       test('list is empty', () async {
-        final MockQuery otherMockQuery = MockQuery();
+        final otherMockQuery = MockQuery();
+        when(otherMockQuery.parameters).thenReturn({});
         final Function() onStartAfterDocument = () => mockQuery.startAfterDocument(mockDocumentSnapshot);
 
+        when(mockQuery.parameters).thenReturn({});
         when(mockQuery.limit(1)).thenReturn(mockQuery);
         when(onStartAfterDocument()).thenReturn(otherMockQuery);
         when(mockQuerySnapshot.docs).thenReturn([]);
         when(mockDocumentSnapshot.id).thenReturn('docId');
 
-        final bool result = await firestoreHelper.areMoreDocumentsAvailable(
+        final result = await firestoreHelper.areMoreDocumentsAvailable(
           query: mockQuery,
           lastDocumentSnapshot: mockDocumentSnapshot,
           onDocumentSnapshot: (_) => '',
@@ -552,10 +672,52 @@ void main() {
     });
   });
 
+  group('hasAnyDocuments', () {
+    test('true', () async {
+      when(mockQuery.parameters).thenReturn({});
+      when(mockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+      when(mockQuerySnapshot.docs).thenReturn([mockQueryDocumentSnapshot]);
+      when(mockQuery.limit(1)).thenReturn(mockQuery);
+
+      final result = await firestoreHelper.hasAnyDocuments(
+        query: mockQuery,
+        onDocumentSnapshot: (_) => '',
+      );
+
+      expect(result, isTrue);
+    });
+
+    test('false', () async {
+      when(mockQuery.parameters).thenReturn({});
+      when(mockQuery.get()).thenAnswer((_) async => mockQuerySnapshot);
+      when(mockQuerySnapshot.docs).thenReturn([]);
+      when(mockQuery.limit(1)).thenReturn(mockQuery);
+
+      final result = await firestoreHelper.hasAnyDocuments(
+        query: mockQuery,
+        onDocumentSnapshot: (_) => '',
+      );
+
+      expect(result, isFalse);
+    });
+  });
+
+  test('getDocumentsCount', () async {
+    final expectedCount = Random().nextInt(100);
+    when(mockQuery.parameters).thenReturn({});
+    when(mockQuery.count()).thenReturn(mockAggregateQuery);
+    when(mockAggregateQuery.get()).thenAnswer((_) async => mockAggregateQuerySnapshot);
+    when(mockAggregateQuerySnapshot.count).thenReturn(expectedCount);
+
+    final count = await firestoreHelper.getDocumentsCount(query: mockQuery);
+
+    expect(count, expectedCount);
+  });
+
   group('listenToDocumentsStream', () {
     test('!isMoreQuery', () async {
       final StreamController<QuerySnapshot> streamController = StreamController()..add(mockQuerySnapshot);
-      final MockFunction mockFunction = MockFunction();
+      final mockFunction = MockFunction();
       final void Function(DocumentChange) onDocumentChange = (documentChange) {
         mockFunction.call(documentChange);
       };
@@ -567,7 +729,7 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
+      final streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
@@ -580,8 +742,8 @@ void main() {
     });
 
     test('isMoreQuery', () async {
-      final StreamController<QuerySnapshot> streamController = StreamController()..add(mockQuerySnapshot);
-      final MockFunction mockFunction = MockFunction();
+      final streamController = StreamController<QuerySnapshot>()..add(mockQuerySnapshot);
+      final mockFunction = MockFunction();
       final void Function(DocumentChange) onDocumentChange = (documentChange) {
         mockFunction.call(documentChange);
       };
@@ -594,7 +756,7 @@ void main() {
       when(mockDocumentChange.doc).thenReturn(mockDocumentSnapshot);
       when(mockDocumentSnapshot.id).thenReturn('');
 
-      final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
+      final streamSubscription = await Future.value(firestoreHelper.listenToDocumentsStream(
         logReference: '',
         query: mockQuery,
         onDocumentChange: onDocumentChange,
@@ -609,10 +771,9 @@ void main() {
   });
 
   test('listenToDocument', () async {
-    final StreamController<DocumentSnapshot<Map<String, dynamic>>> streamController = StreamController()
-      ..add(mockDocumentSnapshot);
+    final streamController = StreamController<DocumentSnapshot<Map<String, dynamic>>>()..add(mockDocumentSnapshot);
     final void Function() onDocument = () => mockFirebaseFirestore.doc('collection/documentId');
-    final MockFunction mockFunction = MockFunction();
+    final mockFunction = MockFunction();
     final void Function(DocumentSnapshot) onDocumentChange = (documentSnapshot) {
       mockFunction.call(documentSnapshot);
     };
@@ -620,7 +781,7 @@ void main() {
     when(onDocument()).thenReturn(mockDocumentReference);
     when(mockDocumentReference.snapshots()).thenAnswer((_) => streamController.stream);
 
-    final StreamSubscription streamSubscription = await Future.value(firestoreHelper.listenToDocument(
+    final streamSubscription = await Future.value(firestoreHelper.listenToDocument(
       ['collection', 'documentId'],
       logReference: '',
       onDocumentChange: onDocumentChange,

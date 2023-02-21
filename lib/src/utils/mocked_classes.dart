@@ -9,6 +9,8 @@ import 'mock_function.dart';
 
 @GenerateMocks([
   LoggingService,
+  AggregateQuery,
+  AggregateQuerySnapshot,
   DocumentSnapshot,
   DocumentChange,
   FirebaseFirestore,

@@ -42,7 +42,7 @@ class FirestoreHelper {
   void _includeAdditionalFieldsIntoMap(Map<String, dynamic> dataMap, {bool includeCreatedAt = false}) {
     // Don't use `FieldValue.serverTimestamp()` because it takes time to initialise
     // time thus for some millis createdAt and updatedAt can be null.
-    final Timestamp timeStamp = Timestamp.fromDate(clock.now());
+    final timeStamp = Timestamp.fromDate(clock.now());
 
     if (includeCreatedAt) dataMap.addAll({'createdAt': timeStamp});
     dataMap.addAll({'updatedAt': timeStamp});
@@ -64,8 +64,8 @@ class FirestoreHelper {
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
 
-      final String pathToDocument = paths.join('/');
-      final DocumentReference documentReference = await _firebaseFirestore.collection(pathToDocument).add(update);
+      final pathToDocument = paths.join('/');
+      final documentReference = await _firebaseFirestore.collection(pathToDocument).add(update);
       _loggingService.log('FirestoreHelper.addDocument: Path: $pathToDocument, Update: $update');
 
       return documentReference.id;
@@ -93,7 +93,7 @@ class FirestoreHelper {
 
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update, includeCreatedAt: true);
-      final String pathToDocument = getPathToDocument(paths);
+      final pathToDocument = getPathToDocument(paths);
 
       await _firebaseFirestore.doc(pathToDocument).set(update);
       _loggingService.log('FirestoreHelper.addDocumentWithId: Path: $pathToDocument, Update: $update');
@@ -113,7 +113,7 @@ class FirestoreHelper {
   /// be constructed to `myCollection/documentId`.
   /// [update] is the data which will be updated within that document.
   Future<bool> updateDocument(List<String> paths, Map<String, dynamic> update) async {
-    final String pathToDocument = getPathToDocument(paths);
+    final pathToDocument = getPathToDocument(paths);
 
     try {
       if (_includeAdditionalFields) _includeAdditionalFieldsIntoMap(update);
@@ -122,7 +122,8 @@ class FirestoreHelper {
       return true;
     } catch (e, s) {
       _loggingService.log(
-        'FirestoreHelper.updateDocument: Failed. Path: $pathToDocument, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
+        'FirestoreHelper.updateDocument: '
+        'Failed. Path: $pathToDocument, Update: $update, Exception: ${e.toString()}. StackTrace: $s',
         logType: LogType.error,
       );
       return false;
@@ -134,7 +135,7 @@ class FirestoreHelper {
   /// [paths] is the list of paths to the document. For example: `myCollection, documentId` which will
   /// be constructed to `myCollection/documentId`.
   Future<bool> deleteDocument(List<String> paths) async {
-    final String pathToDocument = getPathToDocument(paths);
+    final pathToDocument = getPathToDocument(paths);
 
     try {
       await _firebaseFirestore.doc(pathToDocument).delete();
@@ -156,8 +157,8 @@ class FirestoreHelper {
   Future<bool> deleteDocumentsByQuery(Query query) async {
     try {
       _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Deleting. Query: ${query.parameters}');
-      final QuerySnapshot querySnapshot = await query.get();
-      final List<Future> futures = [];
+      final querySnapshot = await query.get();
+      final futures = <Future>[];
 
       querySnapshot.docs.forEach((element) {
         _loggingService.log('FirestoreHelper.deleteDocumentsByQuery: Deleting. DocId: ${element.id}');
@@ -185,12 +186,20 @@ class FirestoreHelper {
     required String logReference,
     required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
-    final String pathToDocument = getPathToDocument(paths);
+    final pathToDocument = getPathToDocument(paths);
 
     try {
       _loggingService.log('FirestoreHelper.getDocument.$logReference: Path: $pathToDocument');
-      final DocumentSnapshot documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
-      final T element = onDocumentSnapshot(documentSnapshot)!;
+      final documentSnapshot = await _firebaseFirestore.doc(pathToDocument).get();
+      if (!documentSnapshot.exists) {
+        _loggingService.log(
+          'FirestoreHelper.getDocument.$logReference: Path: $pathToDocument. Document does not exist',
+          logType: LogType.warning,
+        );
+        return null;
+      }
+
+      final element = onDocumentSnapshot(documentSnapshot);
 
       return element;
     } catch (e, s) {
@@ -214,23 +223,19 @@ class FirestoreHelper {
   Future<List<T>?> getDocuments<T>({
     required Query query,
     required String logReference,
-    required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
     DocumentSnapshot? lastDocumentSnapshot,
   }) async {
-    final bool isMoreQuery = lastDocumentSnapshot != null;
-    final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
+    final isMoreQuery = lastDocumentSnapshot != null;
+    final currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
-    _loggingService.log('FirestoreHelper.getDocuments.$logReference: More: $isMoreQuery');
+    _loggingService.log('FirestoreHelper.getDocuments.$logReference: More: $isMoreQuery, Query: ${currentQuery.parameters}');
     try {
-      final QuerySnapshot querySnapshot = await currentQuery.get();
-      final List<T> elements = querySnapshot.docs.map((e) {
-        final T element = onDocumentSnapshot(e);
-
-        return element;
-      }).toList();
+      final querySnapshot = await currentQuery.get();
+      final elements = querySnapshot.docs.map((e) => onDocumentSnapshot(e)).toList();
 
       _loggingService.log('FirestoreHelper.getDocuments.$logReference: Total: ${elements.length}');
-      return elements;
+      return List<T>.from(elements.where((element) => element != null));
     } catch (e, s) {
       _loggingService.log(
         'FirestoreTransactionsService.getDocuments: Exception: $e. StackTrace: $s',
@@ -243,17 +248,18 @@ class FirestoreHelper {
   /// Retrieves [true] if there are more items and [false] if there are no more items for the
   /// specific [query]. This method is mostly used for pagination purpose.
   ///
-  /// [query] is a query (creativity is not my best strength).
+  /// [query] is a query.
   /// [lastDocumentSnapshot] is the last [DocumentSnapshot] contained within the list of items.
+  /// If [lastDocumentSnapshot] is null, then it checks if at least 1 document exists in the collection.
   /// [onDocumentSnapshot] is a method with return type of an object.
   Future<bool> areMoreDocumentsAvailable<T>({
     required Query query,
     required DocumentSnapshot lastDocumentSnapshot,
-    required T Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
   }) async {
     _loggingService.log('FirestoreHelper.areMoreDocumentsAvailable: Last Document ID: ${lastDocumentSnapshot.id}');
 
-    final List<T>? elements = await getDocuments<T>(
+    final elements = await getDocuments<T>(
       query: query.limit(1),
       logReference: 'FirestoreHelper.areMoreDocumentsAvailable',
       onDocumentSnapshot: (documentSnapshot) => onDocumentSnapshot(documentSnapshot),
@@ -269,6 +275,46 @@ class FirestoreHelper {
     }
   }
 
+  /// Retrieves [true] if there are more than one document within specific [query].
+  ///
+  /// [query] is a query.
+  /// [onDocumentSnapshot] is a method with return type of an object.
+  Future<bool> hasAnyDocuments<T>({
+    required Query query,
+    required T? Function(DocumentSnapshot documentSnapshot) onDocumentSnapshot,
+  }) async {
+    _loggingService.log('FirestoreHelper.hasAnyDocuments');
+
+    final elements = await getDocuments<T>(
+      query: query.limit(1),
+      logReference: 'FirestoreHelper.hasAnyDocuments',
+      onDocumentSnapshot: (documentSnapshot) => onDocumentSnapshot(documentSnapshot),
+    );
+
+    if (elements == null || elements.isEmpty) {
+      _loggingService.log('FirestoreHelper.hasAnyDocuments: No more elements');
+      return false;
+    } else {
+      _loggingService.log('FirestoreHelper.hasAnyDocuments: More elements exists.');
+      return true;
+    }
+  }
+
+  /// Retrieves [int] count of the documents within specific [query].
+  ///
+  /// [query] is a query.
+  /// [onDocumentSnapshot] is a method with return type of an object.
+  Future<int> getDocumentsCount({
+    required Query query,
+  }) async {
+    _loggingService.log('FirestoreHelper.getDocumentsCount: Query: ${query.parameters}');
+
+    final querySnap = await query.count().get();
+    final count = querySnap.count;
+
+    return count;
+  }
+
   /// Listening for the stream of [DocumentSnapshot] from Firestore.
   /// In case of any changes - [onDocumentChange] will get fired.
   ///
@@ -282,9 +328,8 @@ class FirestoreHelper {
     required String logReference,
     required ValueSetter<DocumentSnapshot> onDocumentChange,
   }) {
-    final String pathToDocument = getPathToDocument(paths);
-    final StreamSubscription<DocumentSnapshot> streamSubscription =
-        _firebaseFirestore.doc(pathToDocument).snapshots().listen((documentSnapshot) {
+    final pathToDocument = getPathToDocument(paths);
+    final streamSubscription = _firebaseFirestore.doc(pathToDocument).snapshots().listen((documentSnapshot) {
       _loggingService.log('FirestoreHelper.listenToDocument.$logReference: New event. Path: $pathToDocument');
       onDocumentChange(documentSnapshot);
     });
@@ -305,13 +350,13 @@ class FirestoreHelper {
     required ValueSetter<DocumentChange> onDocumentChange,
     DocumentSnapshot? lastDocumentSnapshot,
   }) {
-    final bool isMoreQuery = lastDocumentSnapshot != null;
-    final Query currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
+    final isMoreQuery = lastDocumentSnapshot != null;
+    final currentQuery = isMoreQuery ? query.startAfterDocument(lastDocumentSnapshot) : query;
 
-    _loggingService
-        .log('FirestoreHelper.listenToDocumentsStream.$logReference: Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
+    _loggingService.log('FirestoreHelper.listenToDocumentsStream.$logReference: '
+        'Query: ${query.parameters}, IsMoreQuery: $isMoreQuery');
 
-    final StreamSubscription<QuerySnapshot> streamSubscription = currentQuery.snapshots().listen((event) {
+    final streamSubscription = currentQuery.snapshots().listen((event) {
       event.docChanges.forEach((docChange) {
         _loggingService.log('FirestoreHelper.listenToDocumentsStream.$logReference:'
             ' Type: ${docChange.type}. DocId: ${docChange.doc.id}');

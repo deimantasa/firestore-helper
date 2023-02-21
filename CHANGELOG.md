@@ -1,3 +1,11 @@
+## 0.3.0+5
+* Add `hasAnyDocuments` and `getDocumentsCount` methods
+* Update dependencies
+
+## 0.2.1+4
+* Include checking for `documentSnapshot.exists` once retrieving a documentSnapshot within `getDocument` method
+* Update dependencies
+
 ## 0.2.0+3
 
 * BREAKING CHANGES
