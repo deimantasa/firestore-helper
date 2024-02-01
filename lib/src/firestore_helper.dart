@@ -304,7 +304,7 @@ class FirestoreHelper {
   ///
   /// [query] is a query.
   /// [onDocumentSnapshot] is a method with return type of an object.
-  Future<int> getDocumentsCount({
+  Future<int?> getDocumentsCount({
     required Query query,
   }) async {
     _loggingService.log('FirestoreHelper.getDocumentsCount: Query: ${query.parameters}');
