@@ -1,3 +1,6 @@
+## 0.3.1+6
+* Update dependencies
+
 ## 0.3.0+5
 * Add `hasAnyDocuments` and `getDocumentsCount` methods
 * Update dependencies
