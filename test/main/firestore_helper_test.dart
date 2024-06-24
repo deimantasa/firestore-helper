@@ -4,9 +4,10 @@ import 'dart:math';
 import 'package:clock/clock.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_helper/firestore_helper.dart';
-import 'package:firestore_helper/src/utils/mocked_classes.mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+
+import '../utils/mocked_classes.mocks.dart';
 
 // ignore: subtype_of_sealed_class
 class MockQueryDocumentSnapshot extends Mock implements QueryDocumentSnapshot {

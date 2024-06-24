@@ -107,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(height: 8),
               Text(
                 'Notes',
-                style: Theme.of(context).textTheme.headline6,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               SizedBox(height: 8),
               Divider(height: 1),
@@ -157,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   Text(
                     'Options',
-                    style: Theme.of(context).textTheme.headline6,
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],
               ),

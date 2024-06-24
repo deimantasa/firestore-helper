@@ -124,7 +124,7 @@ class _NotePageState extends State<NotePage> {
           SizedBox(height: 8),
           Text(
             'Sub Notes',
-            style: Theme.of(context).textTheme.headline6,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
           SizedBox(height: 8),
           Divider(height: 1),
@@ -173,7 +173,7 @@ class _NotePageState extends State<NotePage> {
           SizedBox(height: 8),
           Text(
             'Options',
-            style: Theme.of(context).textTheme.headline6,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
           SizedBox(height: 8),
           Divider(height: 1),

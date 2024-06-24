@@ -1,6 +1,6 @@
 name: firestore_helper
 description: Helper package for handling Firestore easier. It removes boilerplate code by abstracting most frequently used Firebase Firestore APIs.
-version: 0.3.2+7
+version: 0.3.3+8
 repository: https://github.com/deimantasa/firestore-helper
 homepage: https://deimantas.dev
 
@@ -13,8 +13,8 @@ dependencies:
     sdk: flutter
 
   # Firebase
-  firebase_core: ^2.25.0
-  cloud_firestore: ^4.15.0
+  firebase_core: ^3.1.0
+  cloud_firestore: ^5.0.1
   # (required due to mockito generated dependencies)
   cloud_firestore_platform_interface: ^6.0.6
 
